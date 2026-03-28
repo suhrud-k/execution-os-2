@@ -24,18 +24,18 @@ export function StepsSection({ log, onField }: Props) {
           inputMode="numeric"
           min={0}
           max={200000}
-          value={log.daily_steps}
+          value={log.daily_steps === '' ? '' : String(log.daily_steps)}
           onChange={(e) => {
             const raw = e.target.value
             if (raw === '') {
-              void onField('daily_steps', 0)
+              void onField('daily_steps', '')
               return
             }
             const v = Number(raw)
             if (!Number.isFinite(v) || v < 0) return
             void onField('daily_steps', Math.min(200000, Math.floor(v)))
           }}
-          placeholder="0"
+          placeholder=""
           className="w-full rounded-xl bg-slate-950 px-3 py-3 text-lg font-semibold tabular-nums text-white ring-1 ring-slate-700 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-500"
         />
       </label>

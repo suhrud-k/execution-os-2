@@ -2,6 +2,12 @@ import type { Exercise, WorkoutLogData } from '../types/log'
 
 const empty: WorkoutLogData = { exercises: [] }
 
+function parseSetField(v: unknown): number | '' {
+  if (v === '' || v === undefined || v === null) return ''
+  const n = Number(v)
+  return Number.isFinite(n) ? n : ''
+}
+
 export function parseWorkoutLogJson(raw: string): WorkoutLogData {
   if (!raw?.trim()) return structuredClone(empty)
   try {
@@ -13,8 +19,8 @@ export function parseWorkoutLogJson(raw: string): WorkoutLogData {
         name: typeof e.name === 'string' ? e.name : '',
         sets: Array.isArray(e.sets)
           ? e.sets.map((s) => ({
-              reps: Number(s.reps) || 0,
-              weight: Number(s.weight) || 0,
+              reps: parseSetField(s.reps),
+              weight: parseSetField(s.weight),
             }))
           : [],
         runDistanceKm:
@@ -36,14 +42,11 @@ export function stringifyWorkoutLog(data: WorkoutLogData): string {
   return JSON.stringify(data)
 }
 
-/** Default reps for a newly added set or exercise in the log UI. */
-export const DEFAULT_SET_REPS = 8
-
 export function newExercise(): Exercise {
   return {
     id: `ex-${crypto.randomUUID()}`,
     name: '',
-    sets: [{ reps: DEFAULT_SET_REPS, weight: 0 }],
+    sets: [{ reps: '', weight: '' }],
   }
 }
 
@@ -52,7 +55,5 @@ export function newRunExercise(): Exercise {
     id: `ex-${crypto.randomUUID()}`,
     name: 'Run',
     sets: [],
-    runDistanceKm: 0,
-    runDurationMin: 0,
   }
 }

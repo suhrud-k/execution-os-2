@@ -1,10 +1,10 @@
 type StepperProps = {
   label: string
-  value: number
+  value: number | ''
   min?: number
   max?: number
   step?: number
-  onChange: (n: number) => void
+  onChange: (n: number | '') => void
   disabled?: boolean
 }
 
@@ -22,17 +22,44 @@ export function Stepper({
     const f = Math.round(1 / step)
     return Math.round(n * f) / f
   }
-  const dec = () => onChange(snap(Math.max(min, value - step)))
-  const inc = () => onChange(snap(Math.min(max, value + step)))
+
+  const inc = () => {
+    if (value === '') {
+      const first = min > 0 ? min : step
+      onChange(snap(Math.min(max, first)))
+      return
+    }
+    onChange(snap(Math.min(max, value + step)))
+  }
+
+  const dec = () => {
+    if (value === '') return
+    const v = snap(value)
+    if (v <= min) {
+      onChange('')
+      return
+    }
+    const next = snap(v - step)
+    if (next < min) onChange('')
+    else onChange(next)
+  }
+
+  const atMax = typeof value === 'number' && snap(value) >= max
+
   const display =
-    step % 1 !== 0 ? snap(value).toFixed(String(step).split('.')[1]?.length ?? 1) : String(value)
+    value === ''
+      ? '—'
+      : step % 1 !== 0
+        ? snap(value).toFixed(String(step).split('.')[1]?.length ?? 1)
+        : String(value)
+
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-900/80 px-3 py-2 ring-1 ring-slate-800">
       <span className="text-sm text-slate-300">{label}</span>
       <div className="flex items-center gap-2">
         <button
           type="button"
-          disabled={disabled || snap(value) <= min}
+          disabled={disabled || value === ''}
           onClick={dec}
           className="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-800 text-lg font-semibold text-white disabled:opacity-30"
           aria-label={`Decrease ${label}`}
@@ -44,7 +71,7 @@ export function Stepper({
         </span>
         <button
           type="button"
-          disabled={disabled || snap(value) >= max}
+          disabled={disabled || atMax}
           onClick={inc}
           className="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-800 text-lg font-semibold text-white disabled:opacity-30"
           aria-label={`Increase ${label}`}

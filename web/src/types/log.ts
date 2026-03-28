@@ -3,8 +3,8 @@ export type BreakfastType = 'eggs' | 'protein' | 'other' | 'missed' | ''
 export type PriorityStatus = 'Done' | 'Partial' | 'Not Done' | ''
 
 export interface ExerciseSet {
-  reps: number
-  weight: number
+  reps: number | ''
+  weight: number | ''
 }
 
 export interface Exercise {
@@ -30,15 +30,15 @@ export interface LogRecord {
   sleep_time: string
   sleep_hours: number | ''
   breakfast_type: BreakfastType
-  egg_count: number
-  protein_scoops: number
+  egg_count: number | ''
+  protein_scoops: number | ''
   breakfast_notes: string
   workout_done: boolean
   workout_type: string
   warmup_done: boolean
   workout_log_json: string
   meditation_done: boolean
-  meditation_minutes: number
+  meditation_minutes: number | ''
   priority_1: string
   priority_2: string
   priority_3: string
@@ -52,10 +52,10 @@ export interface LogRecord {
   discipline_score: number | ''
   key_insight: string
   improvement_note: string
-  coffee_cups: number
-  soft_drinks_ml: number
+  coffee_cups: number | ''
+  soft_drinks_ml: number | ''
   packaged_foods_notes: string
-  daily_steps: number
+  daily_steps: number | ''
   last_updated_at: string
   sync_status: string
 }

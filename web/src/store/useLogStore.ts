@@ -30,7 +30,7 @@ function persistLogAfterSheetSync(log: LogRecord): LogRecord {
   return {
     ...log,
     workout_type: '',
-    workout_log_json: '{"exercises":[]}',
+    workout_log_json: '',
   }
 }
 

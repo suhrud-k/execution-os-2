@@ -10,7 +10,6 @@ import {
 } from '../constants/exercises'
 import type { LogRecord } from '../types/log'
 import {
-  DEFAULT_SET_REPS,
   newExercise,
   newRunExercise,
   parseWorkoutLogJson,
@@ -52,8 +51,8 @@ export function WorkoutSection({ log, onField }: Props) {
               ...existingRun,
               name: CARDIO_RUN_NAME,
               sets: [],
-              runDistanceKm: existingRun.runDistanceKm ?? 0,
-              runDurationMin: existingRun.runDurationMin ?? 0,
+              runDistanceKm: existingRun.runDistanceKm,
+              runDurationMin: existingRun.runDurationMin,
             }
           : newRunExercise(),
       ]
@@ -164,7 +163,7 @@ export function WorkoutSection({ log, onField }: Props) {
                 <div className="space-y-3">
                   <Stepper
                     label="Distance (km)"
-                    value={runExercise.runDistanceKm ?? 0}
+                    value={runExercise.runDistanceKm ?? ''}
                     max={200}
                     step={0.1}
                     onChange={(n) => {
@@ -173,13 +172,14 @@ export function WorkoutSection({ log, onField }: Props) {
                         (e) => e.name === CARDIO_RUN_NAME,
                       )
                       if (ri < 0) return
-                      next.exercises[ri].runDistanceKm = n
+                      next.exercises[ri].runDistanceKm =
+                        n === '' ? undefined : n
                       setWorkoutJson(next)
                     }}
                   />
                   <Stepper
                     label="Time (min)"
-                    value={runExercise.runDurationMin ?? 0}
+                    value={runExercise.runDurationMin ?? ''}
                     max={600}
                     onChange={(n) => {
                       const next = structuredClone(data)
@@ -187,7 +187,8 @@ export function WorkoutSection({ log, onField }: Props) {
                         (e) => e.name === CARDIO_RUN_NAME,
                       )
                       if (ri < 0) return
-                      next.exercises[ri].runDurationMin = n
+                      next.exercises[ri].runDurationMin =
+                        n === '' ? undefined : n
                       setWorkoutJson(next)
                     }}
                   />
@@ -223,7 +224,7 @@ export function WorkoutSection({ log, onField }: Props) {
                       next.exercises[ei].name = name
                       if (isBodyweightExerciseName(name)) {
                         next.exercises[ei].sets = next.exercises[ei].sets.map(
-                          (s) => ({ ...s, weight: 0 }),
+                          (s) => ({ ...s, weight: '' }),
                         )
                       }
                       setWorkoutJson(next)
@@ -284,8 +285,8 @@ export function WorkoutSection({ log, onField }: Props) {
                       onClick={() => {
                         const next = structuredClone(data)
                         next.exercises[ei].sets.push({
-                          reps: DEFAULT_SET_REPS,
-                          weight: 0,
+                          reps: '',
+                          weight: '',
                         })
                         setWorkoutJson(next)
                       }}
