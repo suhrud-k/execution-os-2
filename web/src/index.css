@@ -1,0 +1,14 @@
+@import 'tailwindcss';
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  @apply min-h-dvh bg-slate-950 text-slate-100 antialiased;
+}
+
+/* Safe area for notched phones */
+.pb-safe {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
