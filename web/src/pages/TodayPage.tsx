@@ -143,11 +143,7 @@ export function TodayPage() {
         </p>
       </header>
 
-      <QuickActions
-        log={currentLog}
-        isLogDayToday={isToday}
-        onField={updateField}
-      />
+      <QuickActions log={currentLog} onField={updateField} />
       <MorningSection log={currentLog} onField={updateField} />
       <WorkoutSection log={currentLog} onField={updateField} />
       <MeditationSection log={currentLog} onField={updateField} />

@@ -6,7 +6,11 @@ import {
   currentIndiaTimeHHmm,
   indiaISOToTimeInputValue,
 } from '../lib/datetimeLocal'
-import { normalizeCalendarISODate } from '../lib/dates'
+import {
+  isWeekendCalendarISODate,
+  normalizeCalendarISODate,
+  todayLocalISODate,
+} from '../lib/dates'
 import type { LogRecord } from '../types/log'
 
 type QuickField = 'wake_time' | 'reach_office_time' | 'leave_office_time' | 'sleep_time'
@@ -21,15 +25,13 @@ const PREVIOUS_DAY_QUICK_DEFAULTS: Record<QuickField, string> = {
 
 type Props = {
   log: LogRecord
-  /** True when the log’s calendar day is the device’s current local day. */
-  isLogDayToday: boolean
   onField: <K extends keyof LogRecord>(
     field: K,
     value: LogRecord[K],
   ) => void | Promise<void>
 }
 
-export function QuickActions({ log, isLogDayToday, onField }: Props) {
+export function QuickActions({ log, onField }: Props) {
   const titleId = useId()
   const [modal, setModal] = useState<null | { label: string; field: QuickField }>(
     null,
@@ -45,24 +47,35 @@ export function QuickActions({ log, isLogDayToday, onField }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [modal])
 
-  const items: {
+  const logDay = normalizeCalendarISODate(log.date)
+  const isLogDayToday = logDay === todayLocalISODate()
+  const weekend = isWeekendCalendarISODate(logDay)
+
+  const allItems: {
     label: string
     field: QuickField
     current: string
+    officeOnly?: boolean
   }[] = [
     { label: 'Wake up', field: 'wake_time', current: log.wake_time },
     {
       label: 'Reached office',
       field: 'reach_office_time',
       current: log.reach_office_time,
+      officeOnly: true,
     },
     {
       label: 'Left office',
       field: 'leave_office_time',
       current: log.leave_office_time,
+      officeOnly: true,
     },
     { label: 'Sleep', field: 'sleep_time', current: log.sleep_time },
   ]
+
+  const items = weekend
+    ? allItems.filter((x) => !x.officeOnly)
+    : allItems
 
   const confirm = () => {
     if (!modal) return

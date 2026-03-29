@@ -22,6 +22,18 @@ export function normalizeCalendarISODate(iso: string): string {
   return `${y}-${mo}-${d}`
 }
 
+/** Saturday or Sunday for this calendar YYYY-MM-DD (UTC date parts, locale-neutral). */
+export function isWeekendCalendarISODate(isoDate: string): boolean {
+  const d = normalizeCalendarISODate(isoDate)
+  const m = d.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!m) return false
+  const y = Number(m[1])
+  const mo = Number(m[2])
+  const day = Number(m[3])
+  const w = new Date(Date.UTC(y, mo - 1, day)).getUTCDay()
+  return w === 0 || w === 6
+}
+
 /** Signed calendar-day difference: `toISO` minus `fromISO` (UTC midnight math). */
 export function calendarDayDiff(fromISO: string, toISO: string): number {
   const a = normalizeCalendarISODate(fromISO)
