@@ -12,6 +12,32 @@ export function indiaISOToDatetimeLocalValue(iso: string): string {
   return `${m[1]}T${m[2]}:${m[3]}`
 }
 
+/** Stored IST instant → `HH:mm` for `<input type="time">` (24h wall clock from string). */
+export function indiaISOToTimeInputValue(iso: string): string {
+  const t = iso?.trim() ?? ''
+  if (!t) return ''
+  const m = t.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/)
+  if (!m) return ''
+  return `${m[2]}:${m[3]}`
+}
+
+/**
+ * Calendar date (YYYY-MM-DD) + `HH:mm` as IST wall clock → stored `...+05:30` string.
+ */
+export function combineCalendarDateAndTimeToIndiaISO(
+  calendarDateYYYYMMDD: string,
+  timeHHmm: string,
+): string | null {
+  const d = calendarDateYYYYMMDD?.trim() ?? ''
+  const time = timeHHmm?.trim() ?? ''
+  if (!d || !time) return null
+  const dm = d.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  const tm = time.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/)
+  if (!dm || !tm) return null
+  const sec = tm[3] != null && tm[3] !== '' ? String(tm[3]).padStart(2, '0') : '00'
+  return `${dm[1]}-${dm[2]}-${dm[3]}T${tm[1]}:${tm[2]}:${sec}+05:30`
+}
+
 /** Current instant as `datetime-local` value in Asia/Kolkata (picker default). */
 export function toDatetimeLocalValueIndiaNow(): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -26,6 +52,13 @@ export function toDatetimeLocalValueIndiaNow(): string {
   const p = (type: Intl.DateTimeFormatPart['type']) =>
     parts.find((x) => x.type === type)?.value ?? '00'
   return `${p('year')}-${p('month')}-${p('day')}T${p('hour')}:${p('minute')}`
+}
+
+/** Current clock time in Asia/Kolkata as `HH:mm` for `<input type="time">`. */
+export function currentIndiaTimeHHmm(): string {
+  const full = toDatetimeLocalValueIndiaNow()
+  const i = full.indexOf('T')
+  return i >= 0 ? full.slice(i + 1) : '00:00'
 }
 
 /**

@@ -15,6 +15,20 @@ type Props = {
 export function MorningSection({ log, onField }: Props) {
   const bt = log.breakfast_type
 
+  const selectBreakfast = async (value: BreakfastType, active: boolean) => {
+    if (active) {
+      await onField('breakfast_type', '' as BreakfastType)
+      return
+    }
+    await onField('breakfast_type', value)
+    if (value === 'eggs' && log.egg_count === '') {
+      await onField('egg_count', 4)
+    }
+    if (value === 'protein' && log.protein_scoops === '') {
+      await onField('protein_scoops', 3)
+    }
+  }
+
   return (
     <SectionCard title="Morning">
       <div className="space-y-4">
@@ -32,12 +46,7 @@ export function MorningSection({ log, onField }: Props) {
                 <button
                   key={value}
                   type="button"
-                  onClick={() =>
-                    void onField(
-                      'breakfast_type',
-                      active ? ('' as BreakfastType) : value,
-                    )
-                  }
+                  onClick={() => void selectBreakfast(value, active)}
                   className={`rounded-full px-3 py-2 text-sm font-medium ${
                     active
                       ? 'bg-amber-500 text-slate-950'

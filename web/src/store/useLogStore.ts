@@ -88,11 +88,23 @@ export const useLogStore = create<LogStore>((set, get) => ({
   setCurrentDate: (date) => {
     const d = normalizeCalendarISODate(date)
     const today = todayLocalISODate()
-    set({ currentDate: d > today ? today : d })
+    const next = d > today ? today : d
+    if (normalizeCalendarISODate(get().currentDate) === next) return
+    set({
+      currentDate: next,
+      currentLog: null,
+      hydrated: false,
+      syncError: null,
+    })
   },
 
   loadTodayLog: () => {
-    set({ currentDate: todayLocalISODate() })
+    set({
+      currentDate: todayLocalISODate(),
+      currentLog: null,
+      hydrated: false,
+      syncError: null,
+    })
   },
 
   loadLogForDate: async (date) => {
@@ -100,7 +112,12 @@ export const useLogStore = create<LogStore>((set, get) => ({
     let targetDate = normalizeCalendarISODate(date)
     const today = todayLocalISODate()
     if (targetDate > today) {
-      set({ currentDate: today })
+      set({
+        currentDate: today,
+        currentLog: null,
+        hydrated: false,
+        syncError: null,
+      })
       targetDate = today
     }
 

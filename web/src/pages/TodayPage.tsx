@@ -40,9 +40,11 @@ export function TodayPage() {
   }, [currentDate, loadLogForDate])
 
   if (!hydrated || !currentLog) {
+    const d = normalizeCalendarISODate(currentDate)
     return (
-      <div className="flex min-h-[40vh] items-center justify-center text-slate-500">
-        Loading…
+      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-1 text-slate-500">
+        <p className="text-sm">Loading {formatDisplayDate(d)}…</p>
+        <p className="text-xs text-slate-600">{d}</p>
       </div>
     )
   }
@@ -141,7 +143,11 @@ export function TodayPage() {
         </p>
       </header>
 
-      <QuickActions log={currentLog} onField={updateField} />
+      <QuickActions
+        log={currentLog}
+        isLogDayToday={isToday}
+        onField={updateField}
+      />
       <MorningSection log={currentLog} onField={updateField} />
       <WorkoutSection log={currentLog} onField={updateField} />
       <MeditationSection log={currentLog} onField={updateField} />

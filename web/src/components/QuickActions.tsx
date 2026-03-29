@@ -2,28 +2,39 @@ import { useEffect, useId, useState } from 'react'
 import { SectionCard } from './ui/SectionCard'
 import { formatTimestamp } from '../lib/formatTime'
 import {
-  indiaISOToDatetimeLocalValue,
-  parseDatetimeLocalToIndiaISO,
-  toDatetimeLocalValueIndiaNow,
+  combineCalendarDateAndTimeToIndiaISO,
+  currentIndiaTimeHHmm,
+  indiaISOToTimeInputValue,
 } from '../lib/datetimeLocal'
+import { normalizeCalendarISODate } from '../lib/dates'
 import type { LogRecord } from '../types/log'
 
 type QuickField = 'wake_time' | 'reach_office_time' | 'leave_office_time' | 'sleep_time'
 
+/** Default wall times (IST) when opening the picker for a past day with no saved value. */
+const PREVIOUS_DAY_QUICK_DEFAULTS: Record<QuickField, string> = {
+  wake_time: '07:00',
+  reach_office_time: '10:00',
+  leave_office_time: '20:00',
+  sleep_time: '22:30',
+}
+
 type Props = {
   log: LogRecord
+  /** True when the log’s calendar day is the device’s current local day. */
+  isLogDayToday: boolean
   onField: <K extends keyof LogRecord>(
     field: K,
     value: LogRecord[K],
   ) => void | Promise<void>
 }
 
-export function QuickActions({ log, onField }: Props) {
+export function QuickActions({ log, isLogDayToday, onField }: Props) {
   const titleId = useId()
   const [modal, setModal] = useState<null | { label: string; field: QuickField }>(
     null,
   )
-  const [draftLocal, setDraftLocal] = useState('')
+  const [draftTime, setDraftTime] = useState('')
 
   useEffect(() => {
     if (!modal) return
@@ -55,11 +66,21 @@ export function QuickActions({ log, onField }: Props) {
 
   const confirm = () => {
     if (!modal) return
-    const iso = parseDatetimeLocalToIndiaISO(draftLocal)
+    const iso = combineCalendarDateAndTimeToIndiaISO(
+      normalizeCalendarISODate(log.date),
+      draftTime,
+    )
     if (!iso) return
     void onField(modal.field, iso as LogRecord[QuickField])
     setModal(null)
   }
+
+  const canSaveTime = Boolean(
+    combineCalendarDateAndTimeToIndiaISO(
+      normalizeCalendarISODate(log.date),
+      draftTime,
+    ),
+  )
 
   return (
     <SectionCard title="Quick actions">
@@ -69,12 +90,14 @@ export function QuickActions({ log, onField }: Props) {
             key={field}
             type="button"
             onClick={() => {
-              const existing = indiaISOToDatetimeLocalValue(current)
-              setDraftLocal(
-                existing.trim() !== ''
-                  ? existing
-                  : toDatetimeLocalValueIndiaNow(),
-              )
+              const existingTime = indiaISOToTimeInputValue(current)
+              if (existingTime.trim() !== '') {
+                setDraftTime(existingTime)
+              } else if (isLogDayToday) {
+                setDraftTime(currentIndiaTimeHHmm())
+              } else {
+                setDraftTime(PREVIOUS_DAY_QUICK_DEFAULTS[field])
+              }
               setModal({ label, field })
             }}
             className="flex min-h-[4.5rem] flex-col items-start justify-center rounded-xl bg-slate-800 px-3 py-2 text-left ring-1 ring-slate-700 active:bg-slate-700"
@@ -104,16 +127,16 @@ export function QuickActions({ log, onField }: Props) {
               {modal.label}
             </h3>
             <p className="mt-1 text-sm text-slate-400">
-              Times are India (IST). Confirm or edit, then save.
+              Time only (IST), using this log day ({normalizeCalendarISODate(log.date)}).
             </p>
             <label className="mt-4 block">
               <span className="mb-2 block text-xs font-medium text-slate-500">
                 Time (IST)
               </span>
               <input
-                type="datetime-local"
-                value={draftLocal}
-                onChange={(e) => setDraftLocal(e.target.value)}
+                type="time"
+                value={draftTime}
+                onChange={(e) => setDraftTime(e.target.value)}
                 className="w-full rounded-xl border-0 bg-slate-950 px-3 py-3 text-base text-white ring-1 ring-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
             </label>
@@ -128,7 +151,7 @@ export function QuickActions({ log, onField }: Props) {
               <button
                 type="button"
                 onClick={confirm}
-                disabled={!parseDatetimeLocalToIndiaISO(draftLocal)}
+                disabled={!canSaveTime}
                 className="min-h-12 flex-1 rounded-xl bg-sky-600 font-semibold text-white disabled:opacity-40"
               >
                 Save
