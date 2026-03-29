@@ -1,6 +1,13 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useLogStore } from '../store/useLogStore'
-import { addDaysISO, formatDisplayDate, todayLocalISODate } from '../lib/dates'
+import { isApiConfigured } from '../lib/api'
+import {
+  addDaysISO,
+  calendarDayDiff,
+  formatDisplayDate,
+  normalizeCalendarISODate,
+  todayLocalISODate,
+} from '../lib/dates'
 import { formatTimestamp } from '../lib/formatTime'
 import { QuickActions } from '../components/QuickActions'
 import { MorningSection } from '../components/MorningSection'
@@ -25,6 +32,8 @@ export function TodayPage() {
   const currentSyncStatus = useLogStore((s) => s.currentSyncStatus)
   const syncError = useLogStore((s) => s.syncError)
   const lastSyncedAt = useLogStore((s) => s.lastSyncedAt)
+  const refreshFromSheet = useLogStore((s) => s.refreshFromSheet)
+  const [sheetRefreshing, setSheetRefreshing] = useState(false)
 
   useEffect(() => {
     void loadLogForDate(currentDate)
@@ -38,43 +47,71 @@ export function TodayPage() {
     )
   }
 
-  const isToday = currentDate === todayLocalISODate()
+  const today = todayLocalISODate()
+  const normCurrent = normalizeCalendarISODate(currentDate)
+  const isToday = normCurrent === today
+  const canGoNext = addDaysISO(normCurrent, 1) <= today
+  const showJumpToToday = calendarDayDiff(normCurrent, today) >= 2
 
   return (
     <div className="space-y-4 pb-6">
       <header className="flex flex-col gap-2">
+        {isApiConfigured() ? (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              disabled={sheetRefreshing}
+              onClick={() => {
+                setSheetRefreshing(true)
+                void refreshFromSheet().finally(() => setSheetRefreshing(false))
+              }}
+              className="text-xs font-medium text-sky-400 underline-offset-2 hover:underline disabled:cursor-wait disabled:opacity-50"
+            >
+              {sheetRefreshing ? 'Syncing from sheet…' : 'Sync from sheet'}
+            </button>
+          </div>
+        ) : null}
         <div className="flex items-center justify-between gap-2">
           <button
             type="button"
             className="rounded-xl bg-slate-800 px-3 py-2 text-lg text-slate-200 ring-1 ring-slate-700"
             aria-label="Previous day"
-            onClick={() => setCurrentDate(addDaysISO(currentDate, -1))}
+            onClick={() => setCurrentDate(addDaysISO(normCurrent, -1))}
           >
             ‹
           </button>
           <div className="flex-1 text-center">
-            <h1 className="text-lg font-bold text-white">
-              {formatDisplayDate(currentDate)}
+            <h1 className="flex flex-wrap items-center justify-center gap-2 text-lg font-bold text-white">
+              <span>{formatDisplayDate(normCurrent)}</span>
+              {isToday ? (
+                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-semibold text-emerald-400">
+                  Today
+                </span>
+              ) : null}
             </h1>
-            <p className="text-xs text-slate-500">{currentDate}</p>
+            <p className="text-xs text-slate-500">{normCurrent}</p>
           </div>
           <button
             type="button"
-            className="rounded-xl bg-slate-800 px-3 py-2 text-lg text-slate-200 ring-1 ring-slate-700"
+            className="rounded-xl bg-slate-800 px-3 py-2 text-lg text-slate-200 ring-1 ring-slate-700 disabled:cursor-not-allowed disabled:opacity-35"
             aria-label="Next day"
-            onClick={() => setCurrentDate(addDaysISO(currentDate, 1))}
+            disabled={!canGoNext}
+            onClick={() => {
+              if (!canGoNext) return
+              setCurrentDate(addDaysISO(normCurrent, 1))
+            }}
           >
             ›
           </button>
         </div>
-        {!isToday ? (
+        {showJumpToToday ? (
           <div className="flex flex-wrap items-center justify-center gap-2">
             <button
               type="button"
               onClick={() => void loadTodayLog()}
-              className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white"
+              className="text-sm font-medium text-sky-400 underline-offset-2 hover:underline"
             >
-              Today
+              Jump to today
             </button>
           </div>
         ) : null}

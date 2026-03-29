@@ -3,6 +3,15 @@
  * Picker defaults and parsing both use Asia/Kolkata.
  */
 
+/** Stored `...+05:30` string → `YYYY-MM-DDTHH:mm` for `datetime-local` (IST wall time). */
+export function indiaISOToDatetimeLocalValue(iso: string): string {
+  const t = iso?.trim() ?? ''
+  if (!t) return ''
+  const m = t.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/)
+  if (!m) return ''
+  return `${m[1]}T${m[2]}:${m[3]}`
+}
+
 /** Current instant as `datetime-local` value in Asia/Kolkata (picker default). */
 export function toDatetimeLocalValueIndiaNow(): string {
   const parts = new Intl.DateTimeFormat('en-CA', {

@@ -2,8 +2,13 @@ import { create } from 'zustand'
 import type { ActivityEntry, ActivityLevel } from '../types/activity'
 import type { LogRecord } from '../types/log'
 import { createDefaultLog, mergeWithDefaults } from '../lib/defaultLog'
-import { getLogEnvelope, saveLogLocal } from '../lib/db'
-import { todayLocalISODate, addDaysISO, nowIndiaISOString } from '../lib/dates'
+import { deleteLogLocal, getLogEnvelope, saveLogLocal } from '../lib/db'
+import {
+  todayLocalISODate,
+  addDaysISO,
+  nowIndiaISOString,
+  normalizeCalendarISODate,
+} from '../lib/dates'
 import { fetchPreviousDaySleepTimeISO } from '../lib/prevEveningSleep'
 import { computeSleepHoursForLog } from '../lib/sleepHours'
 import {
@@ -46,6 +51,8 @@ type LogStore = {
   clearActivityLog: () => void
   loadTodayLog: () => void
   loadLogForDate: (date: string) => Promise<void>
+  /** Pull this calendar day from the sheet; drop local row if the sheet has no row. */
+  refreshFromSheet: () => Promise<void>
   updateField: <K extends keyof LogRecord>(
     field: K,
     value: LogRecord[K],
@@ -79,7 +86,9 @@ export const useLogStore = create<LogStore>((set, get) => ({
   clearActivityLog: () => set({ activityLog: [] }),
 
   setCurrentDate: (date) => {
-    set({ currentDate: date })
+    const d = normalizeCalendarISODate(date)
+    const today = todayLocalISODate()
+    set({ currentDate: d > today ? today : d })
   },
 
   loadTodayLog: () => {
@@ -88,49 +97,90 @@ export const useLogStore = create<LogStore>((set, get) => ({
 
   loadLogForDate: async (date) => {
     const { pushActivity } = get()
-    pushActivity('info', `Loading log for ${date}…`)
+    let targetDate = normalizeCalendarISODate(date)
+    const today = todayLocalISODate()
+    if (targetDate > today) {
+      set({ currentDate: today })
+      targetDate = today
+    }
 
-    const local = await getLogEnvelope(date)
-    let log = local
-      ? mergeWithDefaults(date, local.data)
-      : createDefaultLog(date)
+    pushActivity('info', `Loading log for ${targetDate}…`)
 
+    const local = await getLogEnvelope(targetDate)
+    const isPastDay = targetDate < today
+    const online =
+      typeof navigator !== 'undefined' && navigator.onLine
+    const canRemote = isApiConfigured() && online
+
+    let log: LogRecord
     let remoteNote = ''
-    if (isApiConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
+
+    if (isPastDay && canRemote) {
       try {
-        const remote = await apiGetLog(date)
+        const remote = await apiGetLog(targetDate)
         if (remote) {
-          const localTs = local?.data.last_updated_at
-            ? Date.parse(local.data.last_updated_at)
-            : 0
-          const remoteTs = remote.last_updated_at
-            ? Date.parse(remote.last_updated_at)
-            : 0
-          if (!local || remoteTs >= localTs) {
-            log = mergeWithDefaults(date, remote)
-            await saveLogLocal(log, 'synced')
-            remoteNote = 'Merged with Google Sheet (remote newer or no local).'
-          } else {
-            remoteNote = 'Using local copy (newer than Google Sheet).'
-          }
+          log = mergeWithDefaults(targetDate, remote)
+          await saveLogLocal(log, 'synced')
+          remoteNote = 'Loaded from Google Sheet.'
         } else {
-          remoteNote = 'No row on Google Sheet yet for this date — new log.'
+          log = createDefaultLog(targetDate)
+          remoteNote =
+            'No row on Google Sheet for this date — showing blank (not device cache).'
         }
       } catch (e) {
-        remoteNote = `Google GET failed: ${e instanceof Error ? e.message : String(e)} — using local.`
+        log = local
+          ? mergeWithDefaults(targetDate, local.data)
+          : createDefaultLog(targetDate)
+        remoteNote = `Google GET failed: ${e instanceof Error ? e.message : String(e)} — using ${local ? 'device' : 'blank'}.`
       }
     } else {
-      remoteNote = !isApiConfigured()
-        ? 'API not configured — device only.'
-        : 'Offline — device only.'
+      log = local
+        ? mergeWithDefaults(targetDate, local.data)
+        : createDefaultLog(targetDate)
+
+      if (canRemote) {
+        try {
+          const remote = await apiGetLog(targetDate)
+          if (remote) {
+            const localTs = local?.data.last_updated_at
+              ? Date.parse(local.data.last_updated_at)
+              : 0
+            const remoteTs = remote.last_updated_at
+              ? Date.parse(remote.last_updated_at)
+              : 0
+            if (!local || remoteTs >= localTs) {
+              log = mergeWithDefaults(targetDate, remote)
+              await saveLogLocal(log, 'synced')
+              remoteNote =
+                'Merged with Google Sheet (remote newer or no local).'
+            } else {
+              remoteNote = 'Using local copy (newer than Google Sheet).'
+            }
+          } else {
+            remoteNote =
+              'No row on Google Sheet yet for this date — new log.'
+          }
+        } catch (e) {
+          remoteNote = `Google GET failed: ${e instanceof Error ? e.message : String(e)} — using local.`
+        }
+      } else {
+        remoteNote = !isApiConfigured()
+          ? 'API not configured — device only.'
+          : 'Offline — device only.'
+      }
     }
 
     const beforeSleep = log
-    log = await withSleepHours(date, log)
+    log = await withSleepHours(targetDate, log)
     if (log.sleep_hours !== beforeSleep.sleep_hours) {
       await saveLogLocal(log, 'pending')
     }
-    const env = await getLogEnvelope(date)
+
+    if (get().currentDate !== targetDate) {
+      return
+    }
+
+    const env = await getLogEnvelope(targetDate)
     set({
       currentLog: log,
       hydrated: true,
@@ -140,12 +190,67 @@ export const useLogStore = create<LogStore>((set, get) => ({
     const loadLevel: ActivityLevel = remoteNote.includes('Google GET failed')
       ? 'error'
       : 'success'
-    get().pushActivity(loadLevel, `Ready · ${date}. ${remoteNote}`)
+    get().pushActivity(loadLevel, `Ready · ${targetDate}. ${remoteNote}`)
+  },
+
+  refreshFromSheet: async () => {
+    const { pushActivity } = get()
+    const targetDate = normalizeCalendarISODate(get().currentDate)
+
+    if (!isApiConfigured()) {
+      pushActivity(
+        'info',
+        'Sheet refresh skipped: add VITE_APPS_SCRIPT_URL and VITE_SCRIPT_SECRET in .env.',
+      )
+      return
+    }
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      pushActivity('info', 'Sheet refresh skipped: offline.')
+      return
+    }
+
+    pushActivity('info', `Refreshing from Google Sheet · ${targetDate}…`)
+
+    try {
+      const remote = await apiGetLog(targetDate)
+      let log: LogRecord
+      let note: string
+      if (remote) {
+        log = mergeWithDefaults(targetDate, remote)
+        await saveLogLocal(log, 'synced')
+        note = 'Updated from sheet.'
+      } else {
+        await deleteLogLocal(targetDate)
+        log = createDefaultLog(targetDate)
+        note = 'No row on sheet — removed device copy for this date.'
+      }
+
+      const beforeSleep = log
+      log = await withSleepHours(targetDate, log)
+      if (log.sleep_hours !== beforeSleep.sleep_hours) {
+        await saveLogLocal(log, 'pending')
+      }
+
+      if (get().currentDate !== targetDate) return
+
+      const env = await getLogEnvelope(targetDate)
+      set({
+        currentLog: log,
+        syncError: null,
+        currentSyncStatus: env?.syncStatus ?? 'synced',
+      })
+      pushActivity('success', `Sheet refresh · ${targetDate}. ${note}`)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      set({ syncError: msg })
+      pushActivity('error', `Sheet refresh failed: ${msg}`)
+    }
   },
 
   updateField: async (field, value) => {
     const { currentLog, currentDate } = get()
     if (!currentLog) return
+    if (normalizeCalendarISODate(currentDate) > todayLocalISODate()) return
     let next: LogRecord = {
       ...currentLog,
       [field]: value,
@@ -181,6 +286,10 @@ export const useLogStore = create<LogStore>((set, get) => ({
     const { pushActivity, currentLog } = get()
     if (!currentLog) {
       pushActivity('info', 'Log skipped: still loading this day — wait a moment and try again.')
+      return
+    }
+    if (normalizeCalendarISODate(currentLog.date) > todayLocalISODate()) {
+      pushActivity('info', 'Sync skipped: cannot log a future date.')
       return
     }
     if (!isApiConfigured()) {

@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react'
 import { SectionCard } from './ui/SectionCard'
 import { formatTimestamp } from '../lib/formatTime'
 import {
+  indiaISOToDatetimeLocalValue,
   parseDatetimeLocalToIndiaISO,
   toDatetimeLocalValueIndiaNow,
 } from '../lib/datetimeLocal'
@@ -68,7 +69,12 @@ export function QuickActions({ log, onField }: Props) {
             key={field}
             type="button"
             onClick={() => {
-              setDraftLocal(toDatetimeLocalValueIndiaNow())
+              const existing = indiaISOToDatetimeLocalValue(current)
+              setDraftLocal(
+                existing.trim() !== ''
+                  ? existing
+                  : toDatetimeLocalValueIndiaNow(),
+              )
               setModal({ label, field })
             }}
             className="flex min-h-[4.5rem] flex-col items-start justify-center rounded-xl bg-slate-800 px-3 py-2 text-left ring-1 ring-slate-700 active:bg-slate-700"

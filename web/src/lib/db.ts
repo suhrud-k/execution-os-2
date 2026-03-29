@@ -40,6 +40,11 @@ export async function putLogEnvelope(env: StoredLogEnvelope): Promise<void> {
   await db.put(STORE, env)
 }
 
+export async function deleteLogLocal(date: string): Promise<void> {
+  const db = await getDb()
+  await db.delete(STORE, date)
+}
+
 export async function getAllLogEnvelopes(): Promise<StoredLogEnvelope[]> {
   const db = await getDb()
   return db.getAll(STORE)

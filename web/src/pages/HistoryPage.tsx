@@ -52,7 +52,8 @@ export function HistoryPage() {
         </button>
       </div>
       <p className="text-xs text-slate-500">
-        Merged from this device and Google Sheet (last ~14 days on server).
+        Past days: from Google Sheet when online. Today: sheet rows plus any
+        unsynced copy on this device. Server returns last ~14 days.
       </p>
       <ul className="space-y-2">
         {rows.length === 0 ? (
