@@ -15,10 +15,22 @@ export function FocusWorkSection({ log, onField }: Props) {
     <SectionCard title="Focus work">
       <div className="space-y-4">
         <Stepper
-          label="Time (minutes)"
-          value={log.focus_work_minutes}
-          max={600}
-          onChange={(n) => void onField('focus_work_minutes', n)}
+          label="Time (hours)"
+          value={
+            log.focus_work_minutes === ''
+              ? ''
+              : log.focus_work_minutes / 60
+          }
+          min={0}
+          max={10}
+          step={0.5}
+          snapDisplay={false}
+          onChange={(h) =>
+            void onField(
+              'focus_work_minutes',
+              h === '' ? '' : Math.round(h * 2) * 30,
+            )
+          }
         />
         <label className="block">
           <span className="mb-1 block text-xs text-slate-500">Description</span>

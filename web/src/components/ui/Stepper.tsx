@@ -4,6 +4,8 @@ type StepperProps = {
   min?: number
   max?: number
   step?: number
+  /** When false, show the numeric value without snapping to step (for derived display values). */
+  snapDisplay?: boolean
   onChange: (n: number | '') => void
   disabled?: boolean
 }
@@ -14,6 +16,7 @@ export function Stepper({
   min = 0,
   max = 999,
   step = 1,
+  snapDisplay = true,
   onChange,
   disabled,
 }: StepperProps) {
@@ -46,12 +49,20 @@ export function Stepper({
 
   const atMax = typeof value === 'number' && snap(value) >= max
 
+  const formatUnsnappedDecimal = (n: number) => {
+    const r = Math.round(n * 10_000) / 10_000
+    if (Number.isInteger(r)) return String(r)
+    return r.toFixed(4).replace(/\.?0+$/, '')
+  }
+
   const display =
     value === ''
       ? '—'
-      : step % 1 !== 0
-        ? snap(value).toFixed(String(step).split('.')[1]?.length ?? 1)
-        : String(value)
+      : !snapDisplay && step % 1 !== 0
+        ? formatUnsnappedDecimal(value as number)
+        : step % 1 !== 0
+          ? snap(value).toFixed(String(step).split('.')[1]?.length ?? 1)
+          : String(value)
 
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-900/80 px-3 py-2 ring-1 ring-slate-800">
