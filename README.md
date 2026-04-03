@@ -1,6 +1,8 @@
 # Execution OS 2.0
 
-Mobile-first PWA for daily logging: offline IndexedDB, optional sync to Google Sheets via Google Apps Script. Google Sign-In is intentionally deferred (see `project_plan.txt`).
+Mobile-first PWA for daily logging: offline IndexedDB, optional sync to Google Sheets via Google Apps Script. Google Sign-In is intentionally deferred (see [`project_plan.txt`](project_plan.txt)).
+
+**Full documentation (PWA + Apps Script + MCP, single guide):** [`docs/PROJECT_DOCUMENTATION.md`](docs/PROJECT_DOCUMENTATION.md)
 
 ## Repository layout
 
@@ -8,7 +10,8 @@ Mobile-first PWA for daily logging: offline IndexedDB, optional sync to Google S
 |------|---------|
 | `web/` | React (Vite) + TypeScript + Tailwind + Zustand + React Router 6 |
 | `google-apps-script/` | `Code.gs` REST layer and sheet bootstrap |
-| `mcp-server/` | Optional **remote MCP** (Vercel + Next.js) — tool `fetch_logs` → Apps Script `get_logs` (see `mcp-server/README.md`) |
+| `mcp-server/` | Optional **remote MCP** (Vercel + Next.js) — tool `fetch_logs` → Apps Script `get_logs` ([`mcp-server/README.md`](mcp-server/README.md), [full doc](docs/PROJECT_DOCUMENTATION.md)) |
+| `docs/` | **[PROJECT_DOCUMENTATION.md](docs/PROJECT_DOCUMENTATION.md)** — end-to-end guide |
 | `project_plan.txt` | Product spec |
 
 ## Local development (frontend)
@@ -59,7 +62,7 @@ Copy the **Web app URL** (ends with `/exec`) into `VITE_APPS_SCRIPT_URL`.
 
 - `GET ?action=getLog&date=YYYY-MM-DD&secret=...`
 - `GET ?action=getRecentLogs&secret=...` (last **14** calendar days, script timezone)
-- `GET ?action=get_logs&start=YYYY-MM-DD&end=YYYY-MM-DD&token=...` — normalized JSON for tooling / future MCP (see `google-apps-script/MCP_LOGS_API.md`). Same secret as `EXECUTION_OS_SECRET`; `secret=` is accepted as an alias for `token`.
+- `GET ?action=get_logs&start=YYYY-MM-DD&end=YYYY-MM-DD&token=...` — normalized JSON for tooling / MCP ([`google-apps-script/MCP_LOGS_API.md`](google-apps-script/MCP_LOGS_API.md), [full doc §6](docs/PROJECT_DOCUMENTATION.md#6-get_logs--machine-readable-logs-mcp--tooling)). Same secret as `EXECUTION_OS_SECRET`; `secret=` is accepted as an alias for `token`.
 - `POST` body JSON: `{ "action": "upsertLog", "secret": "...", "log": { ... } }`  
   The web client sends this as **`Content-Type: text/plain`** with a JSON string body to reduce CORS preflight issues.
 

@@ -2,6 +2,8 @@
 
 Machine-readable JSON over the existing **Logs** sheet. Uses the same `EXECUTION_OS_SECRET` as the PWA (passed as query param `token`, or `secret` as an alias).
 
+**End-to-end project guide:** [`docs/PROJECT_DOCUMENTATION.md`](../docs/PROJECT_DOCUMENTATION.md) (includes this API in §6).
+
 ---
 
 ## 1. Assumptions review
