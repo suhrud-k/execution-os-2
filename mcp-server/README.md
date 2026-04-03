@@ -19,7 +19,7 @@ Minimal **read-only** MCP server that exposes **`fetch_logs(start_date, end_date
 
 | Path | Role |
 |------|------|
-| `app/api/[transport]/route.ts` | Next.js route; **`transport=mcp`** → Streamable HTTP MCP endpoint URL **`/api/mcp`**. |
+| `app/api/mcp/route.ts` | Streamable HTTP MCP endpoint **`/api/mcp`** (fixed path so other `/api/*` routes are not captured by a dynamic segment). |
 | `src/lib/env.ts` | Validates `APPS_SCRIPT_BASE_URL` / `APPS_SCRIPT_TOKEN`. |
 | `src/lib/dates.ts` | Strict `YYYY-MM-DD` validation. |
 | `src/lib/apps-script.ts` | HTTP GET to Apps Script `action=get_logs`. |
