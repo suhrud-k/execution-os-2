@@ -1,10 +1,12 @@
-export type ExerciseCategory = 'CST' | 'BB' | 'Legs'
+export type ExerciseCategory = 'BB' | 'CST' | 'Legs' | 'Arms' | 'Universal'
 
 /** No external weight; reps / sets only. */
 export const BODYWEIGHT_EXERCISE_NAMES = new Set([
   'Pushups',
   'Squats',
   'Lunges',
+  'Suryanamaskar',
+  'Deadhang',
 ])
 
 export function isBodyweightExerciseName(name: string): boolean {
@@ -22,11 +24,14 @@ export const EXERCISE_LIBRARY: readonly {
   { name: 'Chest fly', category: 'CST' },
   { name: 'Lat pull downs', category: 'BB' },
   { name: 'Bent over rows', category: 'BB' },
-  { name: 'Shoulder press', category: 'CST' },
-  { name: 'Tricep pushdowns', category: 'CST' },
-  { name: 'Bicep curls', category: 'BB' },
+  { name: 'Rear deltoid', category: 'BB' },
+  { name: 'Shoulder press', category: 'Arms' },
+  { name: 'Tricep pushdowns', category: 'Arms' },
+  { name: 'Bicep curls', category: 'Arms' },
   { name: 'Squats', category: 'Legs' },
   { name: 'Lunges', category: 'Legs' },
+  { name: 'Suryanamaskar', category: 'Universal' },
+  { name: 'Deadhang', category: 'Universal' },
 ]
 
 /** Exercises shown for the selected workout type; Full body = all; Rest / empty = none. */
@@ -38,11 +43,13 @@ export function exercisesForWorkoutType(
   if (workoutType === 'Cardio') return []
   if (workoutType === 'Full body') return all
   if (workoutType === 'BB')
-    return all.filter((e) => e.category === 'BB')
+    return all.filter((e) => e.category === 'BB' || e.category === 'Universal')
   if (workoutType === 'CST')
-    return all.filter((e) => e.category === 'CST')
+    return all.filter((e) => e.category === 'CST' || e.category === 'Universal')
   if (workoutType === 'Legs')
-    return all.filter((e) => e.category === 'Legs')
+    return all.filter((e) => e.category === 'Legs' || e.category === 'Universal')
+  if (workoutType === 'Arms')
+    return all.filter((e) => e.category === 'Arms' || e.category === 'Universal')
   // Warmup, Other — full library
   return all
 }

@@ -25,8 +25,9 @@ export function createDefaultLog(date: string): LogRecord {
     priority_1_status: '',
     priority_2_status: '',
     priority_3_status: '',
+    focus_work_minutes: '',
+    focus_work_description: '',
     work_completed_notes: '',
-    work_blockers: '',
     evening_energy: '',
     focus_score: '',
     discipline_score: '',
@@ -50,11 +51,23 @@ export function mergeWithDefaults(
   return normalizeLegacyLog({ ...base, ...partial, date })
 }
 
-/** Sheet / older clients may still have "Back" instead of "BB". */
+/** Sheet / older clients may still have "Back" instead of "BB", or "protein" vs protein_shake. */
 export function normalizeLegacyLog(log: LogRecord): LogRecord {
-  let next = { ...log }
+  const raw = { ...(log as unknown as Record<string, unknown>) }
+  delete raw.work_blockers
+  let next = raw as unknown as LogRecord
+  if (next.focus_work_minutes === undefined) {
+    next = { ...next, focus_work_minutes: '' }
+  }
+  if (next.focus_work_description === undefined) {
+    next = { ...next, focus_work_description: '' }
+  }
   if (next.workout_type === 'Back') {
     next = { ...next, workout_type: 'BB' }
+  }
+  const bt = String(next.breakfast_type || '').toLowerCase()
+  if (bt === 'protein' || bt === 'protein shake') {
+    next = { ...next, breakfast_type: 'protein_shake' }
   }
   return next
 }

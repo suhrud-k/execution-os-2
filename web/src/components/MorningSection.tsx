@@ -24,7 +24,7 @@ export function MorningSection({ log, onField }: Props) {
     if (value === 'eggs' && log.egg_count === '') {
       await onField('egg_count', 4)
     }
-    if (value === 'protein' && log.protein_scoops === '') {
+    if (value === 'protein_shake' && log.protein_scoops === '') {
       await onField('protein_scoops', 3)
     }
   }
@@ -67,7 +67,7 @@ export function MorningSection({ log, onField }: Props) {
             onChange={(n) => void onField('egg_count', n)}
           />
         ) : null}
-        {bt === 'protein' ? (
+        {bt === 'protein_shake' ? (
           <Stepper
             label="Scoops (shake)"
             value={log.protein_scoops}

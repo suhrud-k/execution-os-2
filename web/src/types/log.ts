@@ -1,4 +1,4 @@
-export type BreakfastType = 'eggs' | 'protein' | 'other' | 'missed' | ''
+export type BreakfastType = 'eggs' | 'protein_shake' | 'other' | 'missed' | ''
 
 export type PriorityStatus = 'Done' | 'Partial' | 'Not Done' | ''
 
@@ -45,8 +45,10 @@ export interface LogRecord {
   priority_1_status: PriorityStatus
   priority_2_status: PriorityStatus
   priority_3_status: PriorityStatus
+  /** Deep work / focus block (minutes). */
+  focus_work_minutes: number | ''
+  focus_work_description: string
   work_completed_notes: string
-  work_blockers: string
   evening_energy: number | ''
   focus_score: number | ''
   discipline_score: number | ''

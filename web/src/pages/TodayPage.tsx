@@ -13,6 +13,7 @@ import { QuickActions } from '../components/QuickActions'
 import { MorningSection } from '../components/MorningSection'
 import { WorkoutSection } from '../components/WorkoutSection'
 import { MeditationSection } from '../components/MeditationSection'
+import { FocusWorkSection } from '../components/FocusWorkSection'
 import { WorkPlanningSection } from '../components/WorkPlanningSection'
 import { WorkTrackingSection } from '../components/WorkTrackingSection'
 import { WorkReflectionSection } from '../components/WorkReflectionSection'
@@ -147,6 +148,7 @@ export function TodayPage() {
       <MorningSection log={currentLog} onField={updateField} />
       <WorkoutSection log={currentLog} onField={updateField} />
       <MeditationSection log={currentLog} onField={updateField} />
+      <FocusWorkSection log={currentLog} onField={updateField} />
       <WorkPlanningSection log={currentLog} onField={updateField} />
       <WorkTrackingSection log={currentLog} onField={updateField} />
       <WorkReflectionSection log={currentLog} onField={updateField} />

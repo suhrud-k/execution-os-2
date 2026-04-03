@@ -46,7 +46,7 @@ export function newExercise(): Exercise {
   return {
     id: `ex-${crypto.randomUUID()}`,
     name: '',
-    sets: [{ reps: 8, weight: 10 }],
+    sets: [{ reps: 12, weight: 10 }],
   }
 }
 

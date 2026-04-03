@@ -22,6 +22,8 @@ var LOG_HEADERS = [
   'workout_log_json',
   'meditation_done',
   'meditation_minutes',
+  'focus_work_minutes',
+  'focus_work_description',
   'priority_1',
   'priority_2',
   'priority_3',
@@ -29,7 +31,6 @@ var LOG_HEADERS = [
   'priority_2_status',
   'priority_3_status',
   'work_completed_notes',
-  'work_blockers',
   'evening_energy',
   'focus_score',
   'discipline_score',
@@ -309,9 +310,9 @@ function setupExecutionOsSheets() {
   if (!ref) ref = ss.insertSheet('Reference');
   ref.clear();
   ref.getRange(1, 1, 4, 2).setValues([
-    ['workout_types', 'BB, CST, Legs, Full body, Cardio, Warmup, Rest, Other'],
+    ['workout_types', 'BB, CST, Legs, Arms, Full body, Cardio, Warmup, Rest, Other'],
     ['priority_status', 'Done, Partial, Not Done'],
-    ['breakfast_types', 'Eggs, Protein, Other, Missed'],
+    ['breakfast_types', 'Eggs, protein_shake, Other, Missed'],
     ['note', 'Edit lists above as needed; app uses in-app constants.'],
   ]);
 

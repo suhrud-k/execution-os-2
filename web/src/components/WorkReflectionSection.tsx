@@ -27,16 +27,6 @@ export function WorkReflectionSection({ log, onField }: Props) {
             placeholder="Shipped, progress, wins…"
           />
         </label>
-        <label className="block">
-          <span className="mb-1 block text-xs text-slate-500">Blockers</span>
-          <textarea
-            value={log.work_blockers}
-            onChange={(e) => void onField('work_blockers', e.target.value)}
-            rows={2}
-            className="w-full rounded-xl bg-slate-950 px-3 py-2 text-sm text-white ring-1 ring-slate-700 placeholder:text-slate-600"
-            placeholder="What got in the way?"
-          />
-        </label>
       </div>
     </SectionCard>
   )

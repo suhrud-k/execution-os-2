@@ -103,6 +103,12 @@ function deserializeFromSheet(
   const workoutTypeRaw = g('workout_type')
   const workoutType =
     workoutTypeRaw === 'Back' ? 'BB' : workoutTypeRaw
+  const breakfastRaw = g('breakfast_type').trim()
+  const breakfastLower = breakfastRaw.toLowerCase()
+  const breakfastType: LogRecord['breakfast_type'] =
+    breakfastLower === 'protein' || breakfastLower === 'protein shake'
+      ? 'protein_shake'
+      : (breakfastRaw as LogRecord['breakfast_type'])
   return {
     date,
     wake_time: g('wake_time'),
@@ -111,7 +117,7 @@ function deserializeFromSheet(
     leave_office_time: g('leave_office_time'),
     sleep_time: g('sleep_time'),
     sleep_hours: gn('sleep_hours'),
-    breakfast_type: g('breakfast_type') as LogRecord['breakfast_type'],
+    breakfast_type: breakfastType,
     egg_count: gn('egg_count') as LogRecord['egg_count'],
     protein_scoops: gn('protein_scoops') as LogRecord['protein_scoops'],
     breakfast_notes: g('breakfast_notes'),
@@ -127,8 +133,9 @@ function deserializeFromSheet(
     priority_1_status: g('priority_1_status') as LogRecord['priority_1_status'],
     priority_2_status: g('priority_2_status') as LogRecord['priority_2_status'],
     priority_3_status: g('priority_3_status') as LogRecord['priority_3_status'],
+    focus_work_minutes: gn('focus_work_minutes') as LogRecord['focus_work_minutes'],
+    focus_work_description: g('focus_work_description'),
     work_completed_notes: g('work_completed_notes'),
-    work_blockers: g('work_blockers'),
     evening_energy: gn('evening_energy'),
     focus_score: gn('focus_score'),
     discipline_score: gn('discipline_score'),
@@ -168,6 +175,9 @@ function serializeForSheet(log: LogRecord): Record<string, string | number | boo
     meditation_done: log.meditation_done,
     meditation_minutes:
       log.meditation_minutes === '' ? '' : log.meditation_minutes,
+    focus_work_minutes:
+      log.focus_work_minutes === '' ? '' : log.focus_work_minutes,
+    focus_work_description: log.focus_work_description,
     priority_1: log.priority_1,
     priority_2: log.priority_2,
     priority_3: log.priority_3,
@@ -175,7 +185,6 @@ function serializeForSheet(log: LogRecord): Record<string, string | number | boo
     priority_2_status: log.priority_2_status,
     priority_3_status: log.priority_3_status,
     work_completed_notes: log.work_completed_notes,
-    work_blockers: log.work_blockers,
     evening_energy: log.evening_energy === '' ? '' : log.evening_energy,
     focus_score: log.focus_score === '' ? '' : log.focus_score,
     discipline_score:

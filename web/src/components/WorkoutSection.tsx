@@ -285,7 +285,7 @@ export function WorkoutSection({ log, onField }: Props) {
                       onClick={() => {
                         const next = structuredClone(data)
                         next.exercises[ei].sets.push({
-                          reps: 8,
+                          reps: 12,
                           weight: isBodyweightExerciseName(ex.name)
                             ? ''
                             : 10,
