@@ -144,10 +144,14 @@ function findLogRowIndex_(sheet, dateStr) {
 
 function doGet(e) {
   try {
+    var action = String(e.parameter.action || '');
+    /** MCP-style JSON API: separate auth param `token` (same value as EXECUTION_OS_SECRET). */
+    if (action === 'get_logs') {
+      return handleGetLogsMcp_(e);
+    }
     if (!checkSecret_(e.parameter.secret)) {
       return jsonOut_({ ok: false, error: 'Unauthorized' });
     }
-    var action = e.parameter.action;
     if (action === 'getLog') {
       var date = e.parameter.date;
       if (!date) return jsonOut_({ ok: false, error: 'Missing date' });
@@ -293,6 +297,259 @@ function getRecentLogs_(days) {
     return String(b.date || '').localeCompare(String(a.date || ''));
   });
   return out;
+}
+
+// --- MCP / machine-readable log API (get_logs) — Sheet → JSON for future MCP server ---
+
+/** Log tab name (first row = headers; same as Execution OS Logs). */
+var MCP_LOG_SHEET_NAME = 'Logs';
+
+var MCP_BOOLEAN_FIELDS = {
+  workout_done: true,
+  warmup_done: true,
+  meditation_done: true,
+};
+
+var MCP_NUMERIC_FIELDS = {
+  morning_energy: true,
+  sleep_hours: true,
+  egg_count: true,
+  protein_scoops: true,
+  meditation_minutes: true,
+  focus_work_minutes: true,
+  evening_energy: true,
+  focus_score: true,
+  discipline_score: true,
+  coffee_cups: true,
+  soft_drinks_ml: true,
+  daily_steps: true,
+};
+
+var MCP_TIMESTAMP_FIELDS = {
+  wake_time: true,
+  reach_office_time: true,
+  leave_office_time: true,
+  sleep_time: true,
+  last_updated_at: true,
+};
+
+/** Accept `token` (spec) or `secret` (same value as EXECUTION_OS_SECRET). */
+function checkMcpToken_(e) {
+  var t = e.parameter.token;
+  if (t === undefined || t === null || String(t).trim() === '') {
+    t = e.parameter.secret;
+  }
+  return checkSecret_(t);
+}
+
+function mcpJsonError_(message) {
+  return jsonOut_({ success: false, error: message });
+}
+
+function mcpJsonSuccess_(payload) {
+  var o = { success: true };
+  for (var k in payload) {
+    if (Object.prototype.hasOwnProperty.call(payload, k)) {
+      o[k] = payload[k];
+    }
+  }
+  return jsonOut_(o);
+}
+
+/** Strict YYYY-MM-DD calendar validation; returns normalized string or null. */
+function parseISODateParam_(s) {
+  if (s === undefined || s === null) return null;
+  var str = String(s).trim();
+  var m = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  var y = Number(m[1]);
+  var mo = Number(m[2]);
+  var d = Number(m[3]);
+  var test = new Date(Date.UTC(y, mo - 1, d));
+  if (
+    test.getUTCFullYear() !== y ||
+    test.getUTCMonth() !== mo - 1 ||
+    test.getUTCDate() !== d
+  ) {
+    return null;
+  }
+  return str;
+}
+
+/** Coerce a sheet `date` cell to YYYY-MM-DD or null. */
+function rowDateToYYYYMMDD_(raw, IST) {
+  if (raw === null || raw === undefined || raw === '') return null;
+  if (raw instanceof Date) {
+    return Utilities.formatDate(raw, IST, 'yyyy-MM-dd');
+  }
+  var s = String(raw).trim();
+  if (!s) return null;
+  return parseISODateParam_(s) || null;
+}
+
+function normalizeMcpBoolean_(v) {
+  if (v === true || v === false) return v;
+  var s = String(v).trim().toUpperCase();
+  if (s === 'TRUE' || s === '1' || s === 'YES') return true;
+  if (s === 'FALSE' || s === '0' || s === 'NO') return false;
+  return null;
+}
+
+function normalizeMcpNumber_(v) {
+  if (v === '' || v === null || v === undefined) return null;
+  if (typeof v === 'number' && !isNaN(v)) return v;
+  var s = String(v).trim().replace(/,/g, '');
+  if (s === '') return null;
+  var n = Number(s);
+  return isFinite(n) ? n : null;
+}
+
+function normalizeMcpTimestamp_(v, IST) {
+  if (v === null || v === undefined || v === '') return null;
+  if (v instanceof Date) {
+    return Utilities.formatDate(v, IST, "yyyy-MM-dd'T'HH:mm:ss") + '+05:30';
+  }
+  var s = String(v).trim();
+  if (!s) return null;
+  var d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    return Utilities.formatDate(d, IST, "yyyy-MM-dd'T'HH:mm:ss") + '+05:30';
+  }
+  return s;
+}
+
+function normalizeWorkoutLogJsonForMcp_(raw) {
+  if (raw === null || raw === undefined) {
+    return { value: null, invalid: false };
+  }
+  var s = typeof raw === 'string' ? raw.trim() : String(raw);
+  if (s === '') return { value: null, invalid: false };
+  try {
+    return { value: JSON.parse(s), invalid: false };
+  } catch (err) {
+    return { value: s, invalid: true };
+  }
+}
+
+/**
+ * Normalize one row object (from rowToObject_) for MCP consumers.
+ * Blanks → null; typed fields per MCP_* maps; workout_log_json parsed or flagged.
+ */
+function normalizeLogObjectForMcp_(raw) {
+  var IST = 'Asia/Kolkata';
+  var wj = normalizeWorkoutLogJsonForMcp_(raw.workout_log_json);
+  var out = {};
+  var keys = Object.keys(raw);
+  for (var i = 0; i < keys.length; i++) {
+    var key = keys[i];
+    if (key === 'workout_log_json') continue;
+    var v = raw[key];
+    if (v === '' || v === null || v === undefined) {
+      out[key] = null;
+      continue;
+    }
+    if (key === 'date') {
+      out.date = rowDateToYYYYMMDD_(v, IST);
+      continue;
+    }
+    if (MCP_BOOLEAN_FIELDS[key]) {
+      out[key] = normalizeMcpBoolean_(v);
+      continue;
+    }
+    if (MCP_NUMERIC_FIELDS[key]) {
+      out[key] = normalizeMcpNumber_(v);
+      continue;
+    }
+    if (MCP_TIMESTAMP_FIELDS[key]) {
+      out[key] = normalizeMcpTimestamp_(v, IST);
+      continue;
+    }
+    if (typeof v === 'boolean') {
+      out[key] = v;
+      continue;
+    }
+    if (typeof v === 'number') {
+      out[key] = v;
+      continue;
+    }
+    out[key] = String(v);
+  }
+  out.workout_log_json = wj.value;
+  if (wj.invalid) {
+    out.workout_log_json_invalid = true;
+  }
+  return out;
+}
+
+function handleGetLogsMcp_(e) {
+  try {
+    if (!checkMcpToken_(e)) {
+      return mcpJsonError_('Invalid or missing token');
+    }
+    var start = parseISODateParam_(e.parameter.start);
+    var end = parseISODateParam_(e.parameter.end);
+    if (!start) {
+      return mcpJsonError_('Invalid or missing start date (use YYYY-MM-DD)');
+    }
+    if (!end) {
+      return mcpJsonError_('Invalid or missing end date (use YYYY-MM-DD)');
+    }
+    if (start > end) {
+      return mcpJsonError_('start must be on or before end');
+    }
+
+    var ss = getSpreadsheet_();
+    var sheet = ss.getSheetByName(MCP_LOG_SHEET_NAME);
+    if (!sheet) {
+      return mcpJsonError_('Log sheet not found: ' + MCP_LOG_SHEET_NAME);
+    }
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) {
+      return mcpJsonSuccess_({
+        source: 'daily_log_sheet',
+        action: 'get_logs',
+        start: start,
+        end: end,
+        count: 0,
+        skipped_rows: 0,
+        logs: [],
+      });
+    }
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var data = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+    var IST = 'Asia/Kolkata';
+    var logs = [];
+    var skipped = 0;
+
+    for (var r = 0; r < data.length; r++) {
+      var rawObj = rowToObject_(headers, data[r]);
+      var rowDate = rowDateToYYYYMMDD_(rawObj.date, IST);
+      if (!rowDate || !parseISODateParam_(rowDate)) {
+        skipped++;
+        continue;
+      }
+      if (rowDate < start || rowDate > end) {
+        continue;
+      }
+      logs.push(normalizeLogObjectForMcp_(rawObj));
+    }
+
+    logs.sort(function (a, b) {
+      return String(a.date || '').localeCompare(String(b.date || ''));
+    });
+
+    return mcpJsonSuccess_({
+      source: 'daily_log_sheet',
+      action: 'get_logs',
+      start: start,
+      end: end,
+      count: logs.length,
+      skipped_rows: skipped,
+      logs: logs,
+    });
+  } catch (err) {
+    return mcpJsonError_(String(err && err.message ? err.message : err));
+  }
 }
 
 /**

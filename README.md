@@ -8,6 +8,7 @@ Mobile-first PWA for daily logging: offline IndexedDB, optional sync to Google S
 |------|---------|
 | `web/` | React (Vite) + TypeScript + Tailwind + Zustand + React Router 6 |
 | `google-apps-script/` | `Code.gs` REST layer and sheet bootstrap |
+| `mcp-server/` | Optional **remote MCP** (Vercel + Next.js) — tool `fetch_logs` → Apps Script `get_logs` (see `mcp-server/README.md`) |
 | `project_plan.txt` | Product spec |
 
 ## Local development (frontend)
@@ -58,6 +59,7 @@ Copy the **Web app URL** (ends with `/exec`) into `VITE_APPS_SCRIPT_URL`.
 
 - `GET ?action=getLog&date=YYYY-MM-DD&secret=...`
 - `GET ?action=getRecentLogs&secret=...` (last **14** calendar days, script timezone)
+- `GET ?action=get_logs&start=YYYY-MM-DD&end=YYYY-MM-DD&token=...` — normalized JSON for tooling / future MCP (see `google-apps-script/MCP_LOGS_API.md`). Same secret as `EXECUTION_OS_SECRET`; `secret=` is accepted as an alias for `token`.
 - `POST` body JSON: `{ "action": "upsertLog", "secret": "...", "log": { ... } }`  
   The web client sends this as **`Content-Type: text/plain`** with a JSON string body to reduce CORS preflight issues.
 
