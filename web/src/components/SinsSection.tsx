@@ -29,12 +29,12 @@ export function SinsSection({ log, onField }: Props) {
         />
         <label className="block">
           <span className="mb-1 block text-xs text-slate-500">
-            Packaged foods
+            Packaged and outside foods
           </span>
           <textarea
-            value={log.packaged_foods_notes}
+            value={log.packaged_and_outside_foods_notes}
             onChange={(e) =>
-              void onField('packaged_foods_notes', e.target.value)
+              void onField('packaged_and_outside_foods_notes', e.target.value)
             }
             rows={2}
             className="w-full rounded-xl bg-slate-950 px-3 py-2 text-sm text-white ring-1 ring-slate-700 placeholder:text-slate-600"

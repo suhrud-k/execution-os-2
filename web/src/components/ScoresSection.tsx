@@ -19,16 +19,6 @@ export function ScoresSection({ log, onField }: Props) {
           onChange={(v) => void onField('evening_energy', v)}
           labels="Evening energy"
         />
-        <FiveScale
-          value={log.focus_score}
-          onChange={(v) => void onField('focus_score', v)}
-          labels="Focus"
-        />
-        <FiveScale
-          value={log.discipline_score}
-          onChange={(v) => void onField('discipline_score', v)}
-          labels="Discipline"
-        />
       </div>
     </SectionCard>
   )

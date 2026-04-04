@@ -134,6 +134,15 @@ Copy the **Web app URL** (`…/exec`) into the PWA and MCP env vars.
 
 The web client may send **`POST upsertLog`** as **`Content-Type: text/plain`** with a JSON body to reduce CORS preflight issues. If the browser still blocks `script.google.com`, use a small proxy or test from an environment with relaxed policies.
 
+### Existing sheet migration (schema updates)
+
+If you already have a **Logs** tab from an older template:
+
+- **Removed columns:** `focus_score`, `discipline_score` — safe to delete those columns from row 1 when convenient; new app versions no longer read or write them.
+- **Renamed column:** `packaged_foods_notes` → **`packaged_and_outside_foods_notes`**. Rename the header in row 1 (or add the new column and copy data). Until you rename, the app still **reads** the old header and **writes** via `upsertLog` into whichever column your sheet uses (see `objectToRow_` alias in [`Code.gs`](../google-apps-script/Code.gs)).
+
+New installs from **`setupExecutionOsSheets`** get the current [`LOG_HEADERS`](../google-apps-script/Code.gs) only.
+
 ---
 
 ## 5. HTTP APIs

@@ -50,13 +50,11 @@ export interface LogRecord {
   focus_work_description: string
   work_completed_notes: string
   evening_energy: number | ''
-  focus_score: number | ''
-  discipline_score: number | ''
   key_insight: string
   improvement_note: string
   coffee_cups: number | ''
   soft_drinks_ml: number | ''
-  packaged_foods_notes: string
+  packaged_and_outside_foods_notes: string
   daily_steps: number | ''
   last_updated_at: string
   sync_status: string

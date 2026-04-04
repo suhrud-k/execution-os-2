@@ -1,0 +1,262 @@
+1. Objective
+
+Build a mobile-first Progressive Web App (PWA) for daily logging.
+
+The app should:
+
+Be installable on mobile
+Be extremely fast to use (tap-first UX)
+Allow partial logging throughout the day
+Work offline and sync later
+Use Google Sheets as the database
+
+Primary goal:
+
+Minimize friction of daily logging while capturing structured data for future insights.
+
+2. Tech Stack
+Frontend
+React (Vite)
+TypeScript
+TailwindCSS
+Zustand (state management)
+React Router v6
+IndexedDB (for offline storage)
+Backend
+Google Apps Script (as REST API layer)
+Google Sheets as database
+Auth
+Google Sign-In (OAuth)
+3. Deployment Strategy
+Preferred Approach
+Frontend hosted on Vercel (PWA enabled)
+Backend as Google Apps Script Web App
+
+Reason:
+
+Lowest maintenance
+Easy mobile install
+Clean Google Sheets integration
+4. Data Model (Google Sheets)
+
+Create 3 sheets:
+
+Sheet 1: Logs
+
+One row per date.
+
+date
+
+# Morning
+wake_time
+morning_energy (1-5)
+
+# Office timestamps
+reach_office_time
+leave_office_time
+sleep_time
+
+# Sleep
+sleep_hours (derived)
+
+# Breakfast
+breakfast_type (eggs/protein/other/missed)
+egg_count
+protein_scoops
+breakfast_notes
+
+# Workout Plan
+planned_workout_type
+
+# Workout Actual
+workout_done
+workout_type
+warmup_done
+workout_duration
+
+# Workout Details (JSON)
+workout_log_json
+
+# Meditation
+meditation_done
+meditation_minutes
+
+# Work Plan
+priority_1
+priority_2
+priority_3
+
+# Work Tracking
+priority_1_status
+priority_2_status
+priority_3_status
+
+# Work Reflection
+work_completed_notes
+work_blockers
+
+# Scores
+evening_energy
+
+# Personal Reflection
+key_insight
+improvement_note
+
+# Metadata
+last_updated_at
+sync_status
+Sheet 2: Reference
+workout_types: Back, CST, Legs, Cardio, Warmup, Rest, Other
+priority_status: Done, Partial, Not Done
+breakfast_types: Eggs, Protein, Other, Missed
+Sheet 3: Analytics
+
+(empty for now)
+
+5. API Design (Google Apps Script)
+
+Create REST endpoints:
+
+POST /upsertLog
+Upsert row by date
+GET /getLog?date=YYYY-MM-DD
+Return log
+GET /getRecentLogs
+Return last 7–14 days
+6. UX Design
+Core Principle
+
+80% of logging should be possible in under 30 seconds using taps only.
+
+7. Main Screen Layout
+1. Quick Actions (Top)
+
+Buttons:
+
+Wake Up → save timestamp
+Reached Office
+Left Office
+Sleep
+
+Each tap auto-saves instantly.
+
+2. Morning Section
+Morning Energy (1–5 buttons)
+Breakfast
+
+Options:
+
+Eggs → stepper (count)
+Protein → stepper (scoops)
+Other → text
+Missed
+3. Workout Section
+Plan
+Workout Type (chips)
+Actual
+Workout Done toggle
+Warm-up toggle
+Workout Duration (stepper)
+Exercises
+Add Exercise
+Each exercise:
+Name (dropdown + text)
+Add sets:
+reps (stepper)
+weight (stepper)
+4. Meditation
+Toggle
+Minutes (stepper)
+5. Work Planning
+Priority 1, 2, 3 (text)
+6. Work Tracking
+
+Each priority:
+
+Done / Partial / Not Done (chips)
+7. Work Reflection
+What I completed (textarea)
+Blockers (textarea)
+8. Scores
+Evening Energy (1–5)
+9. Personal Reflection
+Key Insight
+What to Improve
+8. History Screen
+
+List past days with:
+
+Date
+Morning energy
+Workout done
+Meditation done
+Work completion %
+9. Offline-First Architecture
+Local Storage (IndexedDB)
+{
+  date: string,
+  data: object,
+  syncStatus: "pending" | "synced"
+}
+Sync Logic
+Save locally on every change
+Background sync:
+If online → call API
+Retry failures
+10. State Management (Zustand)
+currentLog
+updateField(field, value)
+saveLocally()
+syncWithServer()
+loadTodayLog()
+11. Key UX Optimizations
+Auto-fill today’s date
+No manual time entry
+Stepper inputs for numbers
+Chips for enums
+Partial saves allowed
+One-handed usability
+Fast load (<1s)
+12. PWA Requirements
+Installable on mobile
+Offline support
+App-like UI
+Fast loading
+13. Implementation Plan
+Phase 1
+UI
+Local storage
+Logging flows
+Phase 2
+Google Apps Script API
+Sync
+Phase 3
+History screen
+UX polish
+14. Constraints
+Must not lose data
+Must work offline
+Must be usable in a cab
+Must avoid typing where possible
+15. Output Required
+
+Generate:
+
+Folder structure
+Full frontend code
+Zustand store
+IndexedDB logic
+Apps Script backend code
+Setup instructions
+Final Instruction
+
+Do NOT over-engineer.
+
+This is a personal execution tool, not a SaaS product.
+
+Priorities:
+
+Speed
+Simplicity
+Reliability
+Daily usage

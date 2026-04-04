@@ -29,13 +29,11 @@ export function createDefaultLog(date: string): LogRecord {
     focus_work_description: '',
     work_completed_notes: '',
     evening_energy: '',
-    focus_score: '',
-    discipline_score: '',
     key_insight: '',
     improvement_note: '',
     coffee_cups: '',
     soft_drinks_ml: '',
-    packaged_foods_notes: '',
+    packaged_and_outside_foods_notes: '',
     daily_steps: '',
     last_updated_at: '',
     sync_status: '',
@@ -55,6 +53,15 @@ export function mergeWithDefaults(
 export function normalizeLegacyLog(log: LogRecord): LogRecord {
   const raw = { ...(log as unknown as Record<string, unknown>) }
   delete raw.work_blockers
+  delete raw.focus_score
+  delete raw.discipline_score
+  if (
+    raw.packaged_and_outside_foods_notes === undefined &&
+    raw.packaged_foods_notes != null
+  ) {
+    raw.packaged_and_outside_foods_notes = String(raw.packaged_foods_notes)
+  }
+  delete raw.packaged_foods_notes
   let next = raw as unknown as LogRecord
   if (next.focus_work_minutes === undefined) {
     next = { ...next, focus_work_minutes: '' }

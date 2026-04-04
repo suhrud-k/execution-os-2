@@ -32,13 +32,11 @@ var LOG_HEADERS = [
   'priority_3_status',
   'work_completed_notes',
   'evening_energy',
-  'focus_score',
-  'discipline_score',
   'key_insight',
   'improvement_note',
   'coffee_cups',
   'soft_drinks_ml',
-  'packaged_foods_notes',
+  'packaged_and_outside_foods_notes',
   'daily_steps',
   'last_updated_at',
   'sync_status',
@@ -116,8 +114,17 @@ function objectToRow_(headers, log) {
     var h = headers[i];
     var val = log[h];
     if (val === undefined || val === null) {
-      row.push('');
-    } else if (typeof val === 'boolean') {
+      if (
+        h === 'packaged_foods_notes' &&
+        log.packaged_and_outside_foods_notes !== undefined &&
+        log.packaged_and_outside_foods_notes !== null
+      ) {
+        val = log.packaged_and_outside_foods_notes;
+      } else {
+        val = '';
+      }
+    }
+    if (typeof val === 'boolean') {
       row.push(val);
     } else {
       row.push(val);
@@ -318,8 +325,6 @@ var MCP_NUMERIC_FIELDS = {
   meditation_minutes: true,
   focus_work_minutes: true,
   evening_energy: true,
-  focus_score: true,
-  discipline_score: true,
   coffee_cups: true,
   soft_drinks_ml: true,
   daily_steps: true,
@@ -436,6 +441,18 @@ function normalizeWorkoutLogJsonForMcp_(raw) {
  * Blanks → null; typed fields per MCP_* maps; workout_log_json parsed or flagged.
  */
 function normalizeLogObjectForMcp_(raw) {
+  raw = JSON.parse(JSON.stringify(raw));
+  delete raw.focus_score;
+  delete raw.discipline_score;
+  if (
+    (raw.packaged_and_outside_foods_notes === undefined ||
+      raw.packaged_and_outside_foods_notes === '') &&
+    raw.packaged_foods_notes != null &&
+    raw.packaged_foods_notes !== ''
+  ) {
+    raw.packaged_and_outside_foods_notes = raw.packaged_foods_notes;
+  }
+  delete raw.packaged_foods_notes;
   var IST = 'Asia/Kolkata';
   var wj = normalizeWorkoutLogJsonForMcp_(raw.workout_log_json);
   var out = {};
