@@ -5,8 +5,10 @@ import { buildLogMapFromEnvelopes, type LogByDate } from './analytics'
 import { enumerateDatesInclusive } from './analyticsWeek'
 
 /**
- * Loads logs for each day in [start, end]: local IndexedDB first, then per-day
- * GET when API is configured and online (for weeks not fully cached locally).
+ * Loads logs for each day in [start, end]: start from IndexedDB, then when online
+ * fetch each day from the sheet. **Remote row wins** when `getLog` returns a row
+ * (so sheet edits — including focus minutes typed in the sheet — show in Analytics).
+ * If `getLog` returns null (no row), keep any local copy for unsynced offline work.
  */
 export async function loadLogsForDateRange(
   start: string,
@@ -32,12 +34,13 @@ export async function loadLogsForDateRange(
   if (canRemote) {
     await Promise.all(
       dates.map(async (d) => {
-        if (map.has(d)) return
         try {
           const remote = await apiGetLog(d)
-          if (remote) map.set(normalizeCalendarISODate(remote.date), remote)
+          if (remote !== null) {
+            map.set(normalizeCalendarISODate(remote.date), remote)
+          }
         } catch {
-          /* ignore */
+          /* keep local */
         }
       }),
     )

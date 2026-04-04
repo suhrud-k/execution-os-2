@@ -1,7 +1,6 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Layout } from './pages/Layout'
 import { TodayPage } from './pages/TodayPage'
-import { HistoryPage } from './pages/HistoryPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
 
 export default function App() {
@@ -10,7 +9,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<TodayPage />} />
-          <Route path="history" element={<HistoryPage />} />
+          <Route path="history" element={<Navigate to="/" replace />} />
           <Route path="analytics" element={<AnalyticsPage />} />
         </Route>
       </Routes>

@@ -69,9 +69,6 @@ export function Layout() {
         >
           Log
         </button>
-        <NavLink to="/history" className={({ isActive, isPending }) => navClass(isActive, isPending)}>
-          History
-        </NavLink>
         <NavLink
           to="/analytics"
           className={({ isActive, isPending }) => navClass(isActive, isPending)}

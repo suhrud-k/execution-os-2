@@ -155,6 +155,7 @@ export function AnalyticsPage() {
             <div className="space-y-6">
               <WeeklyLineChart
                 title="Wake time"
+                subtitle="When you woke up (from wake time field)"
                 points={wakePoints}
                 formatY={(v) => {
                   const h = Math.floor(v)
@@ -165,13 +166,18 @@ export function AnalyticsPage() {
                     ? `${hr12} ${ap}`
                     : `${hr12}:${String(m).padStart(2, '0')} ${ap}`
                 }}
-                yAxisHint="IST"
+                yAxisLabel="Time (IST)"
+                xAxisLabel="Day of week"
+                showValueAbovePoints
               />
               <WeeklyLineChart
                 title="Sleep hours"
+                subtitle="Previous evening sleep → this day’s wake (derived)"
                 points={sleepPoints}
                 formatY={(v) => `${v} h`}
-                yAxisHint="h"
+                yAxisLabel="Hours"
+                xAxisLabel="Day of week"
+                showValueAbovePoints
               />
               <AdherenceRow
                 label="Workout"
@@ -193,9 +199,11 @@ export function AnalyticsPage() {
               />
               <WeeklyLineChart
                 title="Steps"
+                subtitle="Daily steps (from sheet / app)"
                 points={stepsPoints}
                 formatY={(v) => String(Math.round(v))}
-                yAxisHint="steps"
+                yAxisLabel="Steps"
+                xAxisLabel="Day of week"
               />
               <SinsSummary summary={sins} />
             </div>
