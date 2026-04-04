@@ -10,6 +10,15 @@ export function Layout() {
   const syncWithServer = useLogStore((s) => s.syncWithServer)
   const showActivityDock = location.pathname === '/'
   const onLogTab = location.pathname === '/'
+  const navClass = (isActive: boolean, isPending: boolean) =>
+    [
+      'min-h-12 flex-1 touch-manipulation select-none rounded-xl py-3 text-center text-sm font-semibold transition-all duration-150',
+      'active:scale-[0.96] active:bg-slate-700',
+      isActive
+        ? 'bg-slate-800 text-white ring-2 ring-sky-500/70 ring-offset-2 ring-offset-slate-950'
+        : 'text-slate-500 hover:text-slate-300',
+      isPending ? 'opacity-70' : '',
+    ].join(' ')
 
   useEffect(() => {
     const onOnline = () => {
@@ -60,20 +69,14 @@ export function Layout() {
         >
           Log
         </button>
-        <NavLink
-          to="/history"
-          className={({ isActive, isPending }) =>
-            [
-              'min-h-12 flex-1 touch-manipulation select-none rounded-xl py-3 text-center text-sm font-semibold transition-all duration-150',
-              'active:scale-[0.96] active:bg-slate-700',
-              isActive
-                ? 'bg-slate-800 text-white ring-2 ring-sky-500/70 ring-offset-2 ring-offset-slate-950'
-                : 'text-slate-500 hover:text-slate-300',
-              isPending ? 'opacity-70' : '',
-            ].join(' ')
-          }
-        >
+        <NavLink to="/history" className={({ isActive, isPending }) => navClass(isActive, isPending)}>
           History
+        </NavLink>
+        <NavLink
+          to="/analytics"
+          className={({ isActive, isPending }) => navClass(isActive, isPending)}
+        >
+          Analytics
         </NavLink>
       </nav>
     </div>
