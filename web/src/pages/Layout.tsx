@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useLogStore } from '../store/useLogStore'
 import { ActivityLogPanel } from '../components/ActivityLogPanel'
+import { AppLogo } from '../components/AppLogo'
 import { isApiConfigured } from '../lib/api'
 
 export function Layout() {
@@ -35,7 +36,10 @@ export function Layout() {
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col">
-      <main className="min-h-0 flex-1 overflow-y-auto px-3 pt-3 pb-2">
+      <div className="shrink-0 px-3 pt-2">
+        <AppLogo className="text-base" />
+      </div>
+      <main className="min-h-0 flex-1 overflow-y-auto px-3 pt-2 pb-2">
         <Outlet />
       </main>
       {showActivityDock ? (
