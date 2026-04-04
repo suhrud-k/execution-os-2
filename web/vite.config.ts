@@ -22,7 +22,8 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'favicon.svg',
+            // Query string helps some clients refetch after deploy (see index.html favicon link).
+            src: 'favicon.svg?v=xos1',
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any maskable',
