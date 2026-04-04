@@ -1,6 +1,6 @@
 # Execution OS 2.0
 
-Mobile-first PWA for daily logging: offline IndexedDB, optional sync to Google Sheets via Google Apps Script. Google Sign-In is intentionally deferred (see [`project_plan.txt`](project_plan.txt)).
+Mobile-first PWA for daily logging: offline IndexedDB, optional sync to Google Sheets via Google Apps Script. Google Sign-In is intentionally deferred (see [`docs/project_plan.txt`](docs/project_plan.txt)).
 
 **Full documentation (PWA + Apps Script + MCP, single guide):** [`docs/PROJECT_DOCUMENTATION.md`](docs/PROJECT_DOCUMENTATION.md)
 
@@ -11,8 +11,7 @@ Mobile-first PWA for daily logging: offline IndexedDB, optional sync to Google S
 | `web/` | React (Vite) + TypeScript + Tailwind + Zustand + React Router 6 |
 | `google-apps-script/` | `Code.gs` REST layer and sheet bootstrap |
 | `mcp-server/` | Optional **remote MCP** (Vercel + Next.js) — tool `fetch_logs` → Apps Script `get_logs` ([`mcp-server/README.md`](mcp-server/README.md), [full doc](docs/PROJECT_DOCUMENTATION.md)) |
-| `docs/` | **[PROJECT_DOCUMENTATION.md](docs/PROJECT_DOCUMENTATION.md)** — end-to-end guide |
-| `project_plan.txt` | Product spec |
+| `docs/` | **[PROJECT_DOCUMENTATION.md](docs/PROJECT_DOCUMENTATION.md)** — end-to-end guide; [`project_plan.txt`](docs/project_plan.txt) — product spec |
 
 ## Local development (frontend)
 

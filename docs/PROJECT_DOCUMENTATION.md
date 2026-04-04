@@ -8,7 +8,7 @@ Google Sign-In is deferred; the shared secret gates API access until OAuth is ad
 | Document | Role |
 |----------|------|
 | This file | Single canonical overview and operations guide |
-| [project_plan.txt](../project_plan.txt) | Original product spec (fields, goals) |
+| [project_plan.txt](project_plan.txt) | Original product spec (fields, goals) |
 | [google-apps-script/MCP_LOGS_API.md](../google-apps-script/MCP_LOGS_API.md) | `get_logs` API detail (kept in-repo for Apps Script–focused edits) |
 | [mcp-server/README.md](../mcp-server/README.md) | MCP server quick reference + link here |
 
@@ -65,7 +65,7 @@ flowchart LR
 | [`web/`](../web/) | React (Vite) + TypeScript + Tailwind + Zustand + React Router 6 |
 | [`google-apps-script/`](../google-apps-script/) | [`Code.gs`](../google-apps-script/Code.gs) — REST layer, sheet bootstrap, `get_logs` |
 | [`mcp-server/`](../mcp-server/) | Optional remote MCP (Next.js + `mcp-handler`) — tool **`fetch_logs`** → Apps Script |
-| [`project_plan.txt`](../project_plan.txt) | Detailed product / field spec |
+| [`project_plan.txt`](project_plan.txt) | Detailed product / field spec |
 | [`docs/PROJECT_DOCUMENTATION.md`](PROJECT_DOCUMENTATION.md) | This document |
 
 ---
@@ -315,7 +315,7 @@ Ideas (not implemented): `fetch_recent_logs(days)`, `fetch_week_summary` — add
 - **Work completion % (History):** `(Done=1, Partial=0.5, Not Done=0)` averaged across the three priorities × 100.
 - **Focus work (UI):** Entered in **hours** in half-hour steps; stored as **`focus_work_minutes`** (multiples of 30) in the sheet.
 
-Full field list and goals: [`project_plan.txt`](../project_plan.txt).
+Full field list and goals: [`project_plan.txt`](project_plan.txt).
 
 ---
 
