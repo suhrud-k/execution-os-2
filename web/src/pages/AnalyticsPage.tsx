@@ -89,6 +89,12 @@ export function AnalyticsPage() {
     })(),
   }))
 
+  const stepsWeekTotal = stepsPoints.reduce((s, p) => s + (p.value ?? 0), 0)
+  const avgStepsPerDay =
+    stepsPoints.some((p) => p.value !== null) && dateList.length > 0
+      ? stepsWeekTotal / dateList.length
+      : null
+
   const workout = computeAdherenceCount(weekLogs, (l) => l.workout_done === true)
   const med = computeAdherenceCount(weekLogs, (l) => l.meditation_done === true)
   const prot = computeAdherenceCount(weekLogs, proteinDoneForDay)
@@ -126,6 +132,14 @@ export function AnalyticsPage() {
               {weekLabelShort(bounds.start, bounds.end)} · {daysInBounds(bounds.start, bounds.end)}{' '}
               day{daysInBounds(bounds.start, bounds.end) === 1 ? '' : 's'}
             </p>
+            {avgStepsPerDay !== null ? (
+              <p className="mt-1 text-xs text-slate-400">
+                Avg steps/day (this week){' '}
+                <span className="font-semibold text-emerald-400">
+                  {Math.round(avgStepsPerDay).toLocaleString()}
+                </span>
+              </p>
+            ) : null}
           </div>
           <button
             type="button"
@@ -204,6 +218,7 @@ export function AnalyticsPage() {
                 formatY={(v) => String(Math.round(v))}
                 yAxisLabel="Steps"
                 xAxisLabel="Day of week"
+                showValueAbovePoints
               />
               <SinsSummary summary={sins} />
             </div>
