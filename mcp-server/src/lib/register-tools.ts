@@ -2,12 +2,6 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import { fetchLogsFromAppsScript } from '@/lib/apps-script'
 import { getAppsScriptEnv } from '@/lib/env'
-import { isValidIsoDate } from '@/lib/dates'
-
-const isoDate = z
-  .string()
-  .describe('Calendar date in YYYY-MM-DD format')
-  .refine((s) => isValidIsoDate(s), { message: 'Invalid date (expected YYYY-MM-DD)' })
 
 /**
  * Register all MCP tools. Add fetch_recent_logs etc. here later.
@@ -20,8 +14,12 @@ export function registerExecutionOsTools(server: McpServer): void {
       description:
         'Read normalized daily execution logs from Google Sheets for an inclusive date range (via Apps Script get_logs). Read-only.',
       inputSchema: z.object({
-        start_date: isoDate,
-        end_date: isoDate,
+        start_date: z
+          .string()
+          .describe('Calendar date in YYYY-MM-DD format'),
+        end_date: z
+          .string()
+          .describe('Calendar date in YYYY-MM-DD format'),
       }),
       annotations: {
         readOnlyHint: true,
