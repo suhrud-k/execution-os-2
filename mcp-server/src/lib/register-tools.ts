@@ -14,8 +14,12 @@ export function registerExecutionOsTools(server: McpServer): void {
       description:
         'Read normalized daily execution logs from Google Sheets for an inclusive date range (via Apps Script get_logs). Read-only.',
       inputSchema: z.object({
-        start_date: z.string().describe("Calendar date in YYYY-MM-DD format"),
-        end_date: z.string().describe("Calendar date in YYYY-MM-DD format"),
+        start_date: z
+          .string()
+          .describe('Calendar date in YYYY-MM-DD format'),
+        end_date: z
+          .string()
+          .describe('Calendar date in YYYY-MM-DD format'),
       }),
       annotations: {
         readOnlyHint: true,
