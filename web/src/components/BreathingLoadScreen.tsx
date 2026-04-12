@@ -11,6 +11,21 @@ type Props = {
 
 export function BreathingLoadScreen({ detail }: Props) {
   const [phase, setPhase] = useState<Phase>('in')
+  /** First paint at scale-95 so the initial inhale can transition to scale-110. */
+  const [scalePrimed, setScalePrimed] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    const id1 = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!cancelled) setScalePrimed(true)
+      })
+    })
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(id1)
+    }
+  }, [])
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -20,13 +35,13 @@ export function BreathingLoadScreen({ detail }: Props) {
   }, [])
 
   const label = phase === 'in' ? 'Breathe In' : 'Breathe Out'
+  const scaleClass =
+    !scalePrimed || phase === 'out' ? 'scale-95' : 'scale-110'
 
   return (
     <div className="flex min-h-[40vh] flex-col items-center justify-center gap-6 text-slate-400">
       <div
-        className={`flex flex-col items-center gap-3 transition-transform duration-[4000ms] ease-in-out will-change-transform ${
-          phase === 'in' ? 'scale-110' : 'scale-95'
-        }`}
+        className={`flex flex-col items-center gap-3 transition-transform duration-[4000ms] ease-in-out will-change-transform ${scaleClass}`}
         aria-live="polite"
         aria-atomic="true"
       >

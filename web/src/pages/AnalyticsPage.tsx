@@ -27,6 +27,7 @@ import { AdherenceRow } from '../components/analytics/AdherenceRow'
 import { SinsSummary } from '../components/analytics/SinsSummary'
 import { FocusHoursCard } from '../components/analytics/FocusHoursCard'
 import { PriorityCompletionCards } from '../components/analytics/PriorityCompletionCards'
+import { BreathingLoadScreen } from '../components/BreathingLoadScreen'
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
@@ -157,7 +158,9 @@ export function AnalyticsPage() {
       </header>
 
       {loading || !map ? (
-        <p className="text-center text-sm text-slate-500">Loading…</p>
+        <BreathingLoadScreen
+          detail={`${weekLabelShort(bounds.start, bounds.end)} · ${bounds.start}–${bounds.end}`}
+        />
       ) : !hasAnyData ? (
         <p className="rounded-xl bg-slate-900/60 py-10 text-center text-sm text-slate-500 ring-1 ring-slate-800">
           No logs for this week yet
