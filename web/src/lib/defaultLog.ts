@@ -1,4 +1,5 @@
 import type { LogRecord } from '../types/log'
+import { computeAdditionalProteinG } from './additionalProtein'
 
 export function createDefaultLog(date: string): LogRecord {
   return {
@@ -19,6 +20,7 @@ export function createDefaultLog(date: string): LogRecord {
     workout_log_json: '',
     meditation_done: false,
     meditation_minutes: '',
+    medication_tablets_json: '{}',
     priority_1: '',
     priority_2: '',
     priority_3: '',
@@ -29,12 +31,17 @@ export function createDefaultLog(date: string): LogRecord {
     focus_work_description: '',
     work_completed_notes: '',
     evening_energy: '',
+    evening_meal_type: '',
+    evening_egg_count: '',
+    evening_protein_scoops: '',
+    evening_meal_notes: '',
     key_insight: '',
     improvement_note: '',
     coffee_cups: '',
     soft_drinks_ml: '',
     packaged_and_outside_foods_notes: '',
     daily_steps: '',
+    additional_protein_g: 0,
     last_updated_at: '',
     sync_status: '',
   }
@@ -69,6 +76,16 @@ export function normalizeLegacyLog(log: LogRecord): LogRecord {
   if (next.focus_work_description === undefined) {
     next = { ...next, focus_work_description: '' }
   }
+  if (next.medication_tablets_json === undefined) {
+    const legacy = raw.meditation_tablets_json
+    if (legacy !== undefined && legacy !== null && String(legacy).trim() !== '') {
+      next = { ...next, medication_tablets_json: String(legacy) }
+    } else {
+      next = { ...next, medication_tablets_json: '{}' }
+    }
+  }
+  delete raw.meditation_tablets_json
+  delete (next as unknown as Record<string, unknown>).meditation_tablets_json
   if (next.workout_type === 'Back') {
     next = { ...next, workout_type: 'BB' }
   }
@@ -76,5 +93,22 @@ export function normalizeLegacyLog(log: LogRecord): LogRecord {
   if (bt === 'protein' || bt === 'protein shake') {
     next = { ...next, breakfast_type: 'protein_shake' }
   }
+  const em = String(next.evening_meal_type || '').toLowerCase()
+  if (em === 'protein' || em === 'protein shake') {
+    next = { ...next, evening_meal_type: 'protein_shake' }
+  }
+  if (next.evening_meal_type === undefined) {
+    next = { ...next, evening_meal_type: '' }
+  }
+  if (next.evening_egg_count === undefined) {
+    next = { ...next, evening_egg_count: '' }
+  }
+  if (next.evening_protein_scoops === undefined) {
+    next = { ...next, evening_protein_scoops: '' }
+  }
+  if (next.evening_meal_notes === undefined) {
+    next = { ...next, evening_meal_notes: '' }
+  }
+  next = { ...next, additional_protein_g: computeAdditionalProteinG(next) }
   return next
 }

@@ -1,7 +1,11 @@
 import { create } from 'zustand'
 import type { ActivityEntry, ActivityLevel } from '../types/activity'
 import type { LogRecord } from '../types/log'
-import { createDefaultLog, mergeWithDefaults } from '../lib/defaultLog'
+import {
+  createDefaultLog,
+  mergeWithDefaults,
+  normalizeLegacyLog,
+} from '../lib/defaultLog'
 import { deleteLogLocal, getLogEnvelope, saveLogLocal } from '../lib/db'
 import {
   todayLocalISODate,
@@ -281,6 +285,7 @@ export const useLogStore = create<LogStore>((set, get) => ({
         sleep_hours: computeSleepHoursForLog(next, prevSleep),
       }
     }
+    next = normalizeLegacyLog(next)
     set({ currentLog: next, currentSyncStatus: 'pending' })
     await saveLogLocal(next, 'pending')
     if (fieldActivityTimer) clearTimeout(fieldActivityTimer)

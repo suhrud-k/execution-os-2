@@ -1,4 +1,6 @@
-import type { LogRecord } from '../types/log'
+import type { BreakfastType, LogRecord } from '../types/log'
+import { computeAdditionalProteinG } from './additionalProtein'
+import { normalizeLegacyLog } from './defaultLog'
 import { nowIndiaISOString } from './dates'
 
 function baseUrl(): string | null {
@@ -105,11 +107,17 @@ function deserializeFromSheet(
     workoutTypeRaw === 'Back' ? 'BB' : workoutTypeRaw
   const breakfastRaw = g('breakfast_type').trim()
   const breakfastLower = breakfastRaw.toLowerCase()
-  const breakfastType: LogRecord['breakfast_type'] =
+  const breakfastType: BreakfastType =
     breakfastLower === 'protein' || breakfastLower === 'protein shake'
       ? 'protein_shake'
-      : (breakfastRaw as LogRecord['breakfast_type'])
-  return {
+      : (breakfastRaw as BreakfastType)
+  const eveningMealRaw = g('evening_meal_type').trim()
+  const eveningMealLower = eveningMealRaw.toLowerCase()
+  const eveningMealType: BreakfastType =
+    eveningMealLower === 'protein' || eveningMealLower === 'protein shake'
+      ? 'protein_shake'
+      : (eveningMealRaw as BreakfastType)
+  return normalizeLegacyLog({
     date,
     wake_time: g('wake_time'),
     morning_energy: gn('morning_energy'),
@@ -127,6 +135,10 @@ function deserializeFromSheet(
     workout_log_json: g('workout_log_json').trim(),
     meditation_done: gb('meditation_done'),
     meditation_minutes: gn('meditation_minutes') as LogRecord['meditation_minutes'],
+    medication_tablets_json:
+      g('medication_tablets_json').trim() ||
+      g('meditation_tablets_json').trim() ||
+      '{}',
     priority_1: g('priority_1'),
     priority_2: g('priority_2'),
     priority_3: g('priority_3'),
@@ -137,6 +149,10 @@ function deserializeFromSheet(
     focus_work_description: g('focus_work_description'),
     work_completed_notes: g('work_completed_notes'),
     evening_energy: gn('evening_energy'),
+    evening_meal_type: eveningMealType,
+    evening_egg_count: gn('evening_egg_count') as LogRecord['evening_egg_count'],
+    evening_protein_scoops: gn('evening_protein_scoops') as LogRecord['evening_protein_scoops'],
+    evening_meal_notes: g('evening_meal_notes'),
     key_insight: g('key_insight'),
     improvement_note: g('improvement_note'),
     coffee_cups: gn('coffee_cups') as LogRecord['coffee_cups'],
@@ -144,9 +160,10 @@ function deserializeFromSheet(
     packaged_and_outside_foods_notes:
       g('packaged_and_outside_foods_notes') || g('packaged_foods_notes'),
     daily_steps: gn('daily_steps') as LogRecord['daily_steps'],
+    additional_protein_g: 0,
     last_updated_at: g('last_updated_at'),
     sync_status: g('sync_status'),
-  }
+  })
 }
 
 function serializeForSheet(log: LogRecord): Record<string, string | number | boolean> {
@@ -174,6 +191,7 @@ function serializeForSheet(log: LogRecord): Record<string, string | number | boo
     meditation_done: log.meditation_done,
     meditation_minutes:
       log.meditation_minutes === '' ? '' : log.meditation_minutes,
+    medication_tablets_json: log.medication_tablets_json?.trim() || '{}',
     focus_work_minutes:
       log.focus_work_minutes === '' ? '' : log.focus_work_minutes,
     focus_work_description: log.focus_work_description,
@@ -185,12 +203,18 @@ function serializeForSheet(log: LogRecord): Record<string, string | number | boo
     priority_3_status: log.priority_3_status,
     work_completed_notes: log.work_completed_notes,
     evening_energy: log.evening_energy === '' ? '' : log.evening_energy,
+    evening_meal_type: log.evening_meal_type,
+    evening_egg_count: log.evening_egg_count === '' ? '' : log.evening_egg_count,
+    evening_protein_scoops:
+      log.evening_protein_scoops === '' ? '' : log.evening_protein_scoops,
+    evening_meal_notes: log.evening_meal_notes,
     key_insight: log.key_insight,
     improvement_note: log.improvement_note,
     coffee_cups: log.coffee_cups === '' ? '' : log.coffee_cups,
     soft_drinks_ml: log.soft_drinks_ml === '' ? '' : log.soft_drinks_ml,
     packaged_and_outside_foods_notes: log.packaged_and_outside_foods_notes,
     daily_steps: log.daily_steps === '' ? '' : log.daily_steps,
+    additional_protein_g: computeAdditionalProteinG(log),
     last_updated_at: log.last_updated_at || nowIndiaISOString(),
     sync_status: log.sync_status || 'synced',
   }

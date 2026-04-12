@@ -39,6 +39,8 @@ export interface LogRecord {
   workout_log_json: string
   meditation_done: boolean
   meditation_minutes: number | ''
+  /** JSON object string: `{ [tabletId]: true }` for taken tablets; see `constants/medicationTablets`. */
+  medication_tablets_json: string
   priority_1: string
   priority_2: string
   priority_3: string
@@ -50,12 +52,19 @@ export interface LogRecord {
   focus_work_description: string
   work_completed_notes: string
   evening_energy: number | ''
+  /** Same choices as breakfast (eggs / protein shake / other / missed). */
+  evening_meal_type: BreakfastType
+  evening_egg_count: number | ''
+  evening_protein_scoops: number | ''
+  evening_meal_notes: string
   key_insight: string
   improvement_note: string
   coffee_cups: number | ''
   soft_drinks_ml: number | ''
   packaged_and_outside_foods_notes: string
   daily_steps: number | ''
+  /** 6 g/egg + 8 g/scoop (breakfast + evening); mirrored on sheet. */
+  additional_protein_g: number
   last_updated_at: string
   sync_status: string
 }

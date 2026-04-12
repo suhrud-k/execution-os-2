@@ -13,12 +13,15 @@ import { QuickActions } from '../components/QuickActions'
 import { MorningSection } from '../components/MorningSection'
 import { WorkoutSection } from '../components/WorkoutSection'
 import { MeditationSection } from '../components/MeditationSection'
+import { MedicationTabletsSection } from '../components/MedicationTabletsSection'
 import { FocusWorkSection } from '../components/FocusWorkSection'
 import { WorkPlanningSection } from '../components/WorkPlanningSection'
 import { WorkTrackingSection } from '../components/WorkTrackingSection'
 import { WorkReflectionSection } from '../components/WorkReflectionSection'
 import { ScoresSection } from '../components/ScoresSection'
 import { PersonalReflectionSection } from '../components/PersonalReflectionSection'
+import { EveningProteinSection } from '../components/EveningProteinSection'
+import { BreathingLoadScreen } from '../components/BreathingLoadScreen'
 import { SinsSection } from '../components/SinsSection'
 import { StepsSection } from '../components/StepsSection'
 
@@ -42,12 +45,7 @@ export function TodayPage() {
 
   if (!hydrated || !currentLog) {
     const d = normalizeCalendarISODate(currentDate)
-    return (
-      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-1 text-slate-500">
-        <p className="text-sm">Loading {formatDisplayDate(d)}…</p>
-        <p className="text-xs text-slate-600">{d}</p>
-      </div>
-    )
+    return <BreathingLoadScreen detail={`${formatDisplayDate(d)} · ${d}`} />
   }
 
   const today = todayLocalISODate()
@@ -148,11 +146,13 @@ export function TodayPage() {
       <MorningSection log={currentLog} onField={updateField} />
       <WorkoutSection log={currentLog} onField={updateField} />
       <MeditationSection log={currentLog} onField={updateField} />
+      <MedicationTabletsSection log={currentLog} onField={updateField} />
       <FocusWorkSection log={currentLog} onField={updateField} />
       <WorkPlanningSection log={currentLog} onField={updateField} />
       <WorkTrackingSection log={currentLog} onField={updateField} />
       <WorkReflectionSection log={currentLog} onField={updateField} />
       <ScoresSection log={currentLog} onField={updateField} />
+      <EveningProteinSection log={currentLog} onField={updateField} />
       <SinsSection log={currentLog} onField={updateField} />
       <StepsSection log={currentLog} onField={updateField} />
       <PersonalReflectionSection log={currentLog} onField={updateField} />

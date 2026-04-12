@@ -18,6 +18,9 @@ import {
   sumWeeklyFocusMinutes,
   computePriorityCompletionPercent,
   computeSinsSummary,
+  computeAdditionalProteinG,
+  PROTEIN_G_PER_EGG,
+  PROTEIN_G_PER_SCOOP,
 } from '../lib/analytics'
 import { WeeklyLineChart } from '../components/analytics/WeeklyLineChart'
 import { AdherenceRow } from '../components/analytics/AdherenceRow'
@@ -89,6 +92,11 @@ export function AnalyticsPage() {
     })(),
   }))
 
+  const additionalProteinPoints = dateList.map((d) => ({
+    date: d,
+    value: map ? computeAdditionalProteinG(getLogForDateOrDefault(map, d)) : null,
+  }))
+
   const stepsWeekTotal = stepsPoints.reduce((s, p) => s + (p.value ?? 0), 0)
   const avgStepsPerDay =
     stepsPoints.some((p) => p.value !== null) && dateList.length > 0
@@ -132,14 +140,6 @@ export function AnalyticsPage() {
               {weekLabelShort(bounds.start, bounds.end)} · {daysInBounds(bounds.start, bounds.end)}{' '}
               day{daysInBounds(bounds.start, bounds.end) === 1 ? '' : 's'}
             </p>
-            {avgStepsPerDay !== null ? (
-              <p className="mt-1 text-xs text-slate-400">
-                Avg steps/day (this week){' '}
-                <span className="font-semibold text-emerald-400">
-                  {Math.round(avgStepsPerDay).toLocaleString()}
-                </span>
-              </p>
-            ) : null}
           </div>
           <button
             type="button"
@@ -217,6 +217,23 @@ export function AnalyticsPage() {
                 points={stepsPoints}
                 formatY={(v) => String(Math.round(v))}
                 yAxisLabel="Steps"
+                xAxisLabel="Day of week"
+                showValueAbovePoints
+              />
+              {avgStepsPerDay !== null ? (
+                <p className="text-center text-xs text-slate-400">
+                  Avg steps/day (this week){' '}
+                  <span className="font-semibold text-emerald-400">
+                    {Math.round(avgStepsPerDay).toLocaleString()}
+                  </span>
+                </p>
+              ) : null}
+              <WeeklyLineChart
+                title="Additional protein consumed"
+                subtitle={`${PROTEIN_G_PER_EGG} g per egg + ${PROTEIN_G_PER_SCOOP} g per scoop (breakfast + evening)`}
+                points={additionalProteinPoints}
+                formatY={(v) => `${Math.round(v)} g`}
+                yAxisLabel="Protein (g)"
                 xAxisLabel="Day of week"
                 showValueAbovePoints
               />

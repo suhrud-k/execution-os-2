@@ -22,6 +22,7 @@ var LOG_HEADERS = [
   'workout_log_json',
   'meditation_done',
   'meditation_minutes',
+  'medication_tablets_json',
   'focus_work_minutes',
   'focus_work_description',
   'priority_1',
@@ -38,6 +39,11 @@ var LOG_HEADERS = [
   'soft_drinks_ml',
   'packaged_and_outside_foods_notes',
   'daily_steps',
+  'evening_meal_type',
+  'evening_egg_count',
+  'evening_protein_scoops',
+  'evening_meal_notes',
+  'additional_protein_g',
   'last_updated_at',
   'sync_status',
 ];
@@ -322,12 +328,15 @@ var MCP_NUMERIC_FIELDS = {
   sleep_hours: true,
   egg_count: true,
   protein_scoops: true,
+  evening_egg_count: true,
+  evening_protein_scoops: true,
   meditation_minutes: true,
   focus_work_minutes: true,
   evening_energy: true,
   coffee_cups: true,
   soft_drinks_ml: true,
   daily_steps: true,
+  additional_protein_g: true,
 };
 
 var MCP_TIMESTAMP_FIELDS = {
@@ -460,6 +469,7 @@ function normalizeLogObjectForMcp_(raw) {
   for (var i = 0; i < keys.length; i++) {
     var key = keys[i];
     if (key === 'workout_log_json') continue;
+    if (key === 'meditation_tablets_json' || key === 'medication_tablets_json') continue;
     var v = raw[key];
     if (v === '' || v === null || v === undefined) {
       out[key] = null;
@@ -494,6 +504,17 @@ function normalizeLogObjectForMcp_(raw) {
   out.workout_log_json = wj.value;
   if (wj.invalid) {
     out.workout_log_json_invalid = true;
+  }
+  var mtRaw =
+    raw.medication_tablets_json !== undefined && raw.medication_tablets_json !== null
+      ? raw.medication_tablets_json
+      : raw.meditation_tablets_json;
+  var mtj = normalizeWorkoutLogJsonForMcp_(mtRaw);
+  if (mtRaw !== undefined && mtRaw !== null && String(mtRaw).trim() !== '') {
+    out.medication_tablets = mtj.value;
+    if (mtj.invalid) {
+      out.medication_tablets_json_invalid = true;
+    }
   }
   return out;
 }

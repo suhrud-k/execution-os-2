@@ -99,12 +99,23 @@ export function computeAdherenceCount(
   return { done, total: logs.length }
 }
 
+export { computeAdditionalProteinG } from './additionalProtein'
+export {
+  PROTEIN_G_PER_EGG,
+  PROTEIN_G_PER_SCOOP,
+} from './additionalProtein'
+
 export function proteinDoneForDay(log: LogRecord): boolean {
   const eggs = log.egg_count
   const scoops = log.protein_scoops
   const e = typeof eggs === 'number' && eggs > 0
   const p = typeof scoops === 'number' && scoops > 0
-  return e || p
+  if (e || p) return true
+  const e2 = log.evening_egg_count
+  const p2 = log.evening_protein_scoops
+  const eOk = typeof e2 === 'number' && e2 > 0
+  const pOk = typeof p2 === 'number' && p2 > 0
+  return eOk || pOk
 }
 
 export function sumWeeklyFocusMinutes(logs: LogRecord[]): number {
