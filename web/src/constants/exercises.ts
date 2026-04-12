@@ -7,6 +7,7 @@ export const BODYWEIGHT_EXERCISE_NAMES = new Set([
   'Lunges',
   'Suryanamaskar',
   'Deadhang',
+  'Skipping',
 ])
 
 export function isBodyweightExerciseName(name: string): boolean {
@@ -22,6 +23,8 @@ export const EXERCISE_LIBRARY: readonly {
 }[] = [
   { name: 'Pushups', category: 'CST' },
   { name: 'Chest fly', category: 'CST' },
+  { name: 'Shoulder press', category: 'CST' },
+  { name: 'Tricep pushdowns', category: 'CST' },
   { name: 'Lat pull downs', category: 'BB' },
   { name: 'Bent over rows', category: 'BB' },
   { name: 'Rear deltoid', category: 'BB' },
@@ -32,6 +35,7 @@ export const EXERCISE_LIBRARY: readonly {
   { name: 'Lunges', category: 'Legs' },
   { name: 'Suryanamaskar', category: 'Universal' },
   { name: 'Deadhang', category: 'Universal' },
+  { name: 'Skipping', category: 'Universal' },
 ]
 
 /** Exercises shown for the selected workout type; Full body = all; Rest / empty = none. */

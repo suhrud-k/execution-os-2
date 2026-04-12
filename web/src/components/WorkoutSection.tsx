@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { SectionCard } from './ui/SectionCard'
 import { ChipRow } from './ui/ChipRow'
 import { Stepper } from './ui/Stepper'
@@ -29,6 +29,11 @@ export function WorkoutSection({ log, onField }: Props) {
   const workoutType = log.workout_type
   const library = exercisesForWorkoutType(workoutType)
   const allowedNames = new Set(library.map((e) => e.name))
+  /** One option per name (library may list same name under CST + Arms for Full body). */
+  const libraryNamesUnique = useMemo(
+    () => [...new Set(library.map((e) => e.name))],
+    [library],
+  )
 
   const setWorkoutJson = (next: ReturnType<typeof parseWorkoutLogJson>) => {
     void onField('workout_log_json', stringifyWorkoutLog(next))
@@ -133,7 +138,7 @@ export function WorkoutSection({ log, onField }: Props) {
                 type="button"
                 className="text-sm font-medium text-sky-400"
                 onClick={() => {
-                  const first = library[0]?.name ?? ''
+                  const first = libraryNamesUnique[0] ?? ''
                   const ex = newExercise()
                   ex.name = first
                   setWorkoutJson({
@@ -232,9 +237,9 @@ export function WorkoutSection({ log, onField }: Props) {
                     className="mb-3 w-full rounded-lg bg-slate-900 px-2 py-3 text-sm ring-1 ring-slate-700"
                   >
                     <option value="">Select…</option>
-                    {library.map((opt) => (
-                      <option key={opt.name} value={opt.name}>
-                        {opt.name}
+                    {libraryNamesUnique.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
                       </option>
                     ))}
                   </select>

@@ -3,6 +3,7 @@ import { SectionCard } from './ui/SectionCard'
 import { formatTimestamp } from '../lib/formatTime'
 import {
   combineCalendarDateAndTimeToIndiaISO,
+  combineLogDayAndSleepTimeToIndiaISO,
   currentIndiaTimeHHmm,
   indiaISOToTimeInputValue,
 } from '../lib/datetimeLocal'
@@ -77,23 +78,24 @@ export function QuickActions({ log, onField }: Props) {
     ? allItems.filter((x) => !x.officeOnly)
     : allItems
 
+  const isoForQuickField = (field: QuickField, timeHHmm: string) => {
+    if (field === 'sleep_time') {
+      return combineLogDayAndSleepTimeToIndiaISO(logDay, timeHHmm)
+    }
+    return combineCalendarDateAndTimeToIndiaISO(logDay, timeHHmm)
+  }
+
   const confirm = () => {
     if (!modal) return
-    const iso = combineCalendarDateAndTimeToIndiaISO(
-      normalizeCalendarISODate(log.date),
-      draftTime,
-    )
+    const iso = isoForQuickField(modal.field, draftTime)
     if (!iso) return
     void onField(modal.field, iso as LogRecord[QuickField])
     setModal(null)
   }
 
-  const canSaveTime = Boolean(
-    combineCalendarDateAndTimeToIndiaISO(
-      normalizeCalendarISODate(log.date),
-      draftTime,
-    ),
-  )
+  const canSaveTime = modal
+    ? Boolean(isoForQuickField(modal.field, draftTime))
+    : false
 
   return (
     <SectionCard title="Quick actions">
@@ -140,7 +142,17 @@ export function QuickActions({ log, onField }: Props) {
               {modal.label}
             </h3>
             <p className="mt-1 text-sm text-slate-400">
-              Time only (IST), using this log day ({normalizeCalendarISODate(log.date)}).
+              {modal.field === 'sleep_time' ? (
+                <>
+                  Time only (IST) for this log ({logDay}). After midnight (12:00–6:59 AM) is saved
+                  as early morning on the <span className="text-slate-300">next calendar day</span>{' '}
+                  automatically.
+                </>
+              ) : (
+                <>
+                  Time only (IST), using this log day ({logDay}).
+                </>
+              )}
             </p>
             <label className="mt-4 block">
               <span className="mb-2 block text-xs font-medium text-slate-500">

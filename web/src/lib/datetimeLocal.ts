@@ -3,6 +3,8 @@
  * Picker defaults and parsing both use Asia/Kolkata.
  */
 
+import { addDaysISO, normalizeCalendarISODate } from './dates'
+
 /** Stored `...+05:30` string → `YYYY-MM-DDTHH:mm` for `datetime-local` (IST wall time). */
 export function indiaISOToDatetimeLocalValue(iso: string): string {
   const t = iso?.trim() ?? ''
@@ -36,6 +38,25 @@ export function combineCalendarDateAndTimeToIndiaISO(
   if (!dm || !tm) return null
   const sec = tm[3] != null && tm[3] !== '' ? String(tm[3]).padStart(2, '0') : '00'
   return `${dm[1]}-${dm[2]}-${dm[3]}T${tm[1]}:${tm[2]}:${sec}+05:30`
+}
+
+/**
+ * Sleep time for this log row: evening/night on the log day uses that calendar date;
+ * post-midnight (00:00–06:59 IST) is stored on the **next** calendar day (early morning after midnight).
+ * No separate date picker — only the time control.
+ */
+export function combineLogDayAndSleepTimeToIndiaISO(
+  logCalendarDateYYYYMMDD: string,
+  timeHHmm: string,
+): string | null {
+  const d = normalizeCalendarISODate(logCalendarDateYYYYMMDD?.trim() ?? '')
+  const time = timeHHmm?.trim() ?? ''
+  if (!d || !time) return null
+  const tm = time.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/)
+  if (!tm) return null
+  const hour = Number(tm[1])
+  const dateForInstant = hour >= 0 && hour < 7 ? addDaysISO(d, 1) : d
+  return combineCalendarDateAndTimeToIndiaISO(dateForInstant, time)
 }
 
 /** Current instant as `datetime-local` value in Asia/Kolkata (picker default). */

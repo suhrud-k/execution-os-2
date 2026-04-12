@@ -25,7 +25,7 @@ export function PersonalReflectionSection({ log, onField }: Props) {
         </label>
         <label className="block">
           <span className="mb-1 block text-xs text-slate-500">
-            What to improve
+            What to improve | Plan for tomorrow
           </span>
           <textarea
             value={log.improvement_note}
