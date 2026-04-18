@@ -10,6 +10,7 @@ import {
 } from '../lib/dates'
 import { formatTimestamp } from '../lib/formatTime'
 import { QuickActions } from '../components/QuickActions'
+import { DayTypeSection } from '../components/DayTypeSection'
 import { MorningSection } from '../components/MorningSection'
 import { WorkoutSection } from '../components/WorkoutSection'
 import { MeditationSection } from '../components/MeditationSection'
@@ -24,6 +25,7 @@ import { EveningProteinSection } from '../components/EveningProteinSection'
 import { BreathingLoadScreen } from '../components/BreathingLoadScreen'
 import { SinsSection } from '../components/SinsSection'
 import { StepsSection } from '../components/StepsSection'
+import { dayTypeBadgeLabel } from '../constants/dayType'
 
 export function TodayPage() {
   const currentDate = useLogStore((s) => s.currentDate)
@@ -53,6 +55,7 @@ export function TodayPage() {
   const isToday = normCurrent === today
   const canGoNext = addDaysISO(normCurrent, 1) <= today
   const showJumpToToday = calendarDayDiff(normCurrent, today) >= 2
+  const dayBadge = dayTypeBadgeLabel(currentLog.day_type)
 
   return (
     <div className="space-y-4 pb-6">
@@ -84,6 +87,11 @@ export function TodayPage() {
           <div className="flex-1 text-center">
             <h1 className="flex flex-wrap items-center justify-center gap-2 text-lg font-bold text-white">
               <span>{formatDisplayDate(normCurrent)}</span>
+              {dayBadge ? (
+                <span className="rounded-full bg-violet-500/25 px-2 py-0.5 text-xs font-semibold text-violet-200 ring-1 ring-violet-500/40">
+                  {dayBadge}
+                </span>
+              ) : null}
               {isToday ? (
                 <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-semibold text-emerald-400">
                   Today
@@ -142,6 +150,7 @@ export function TodayPage() {
         </p>
       </header>
 
+      <DayTypeSection log={currentLog} onField={updateField} />
       <QuickActions log={currentLog} onField={updateField} />
       <MorningSection log={currentLog} onField={updateField} />
       <WorkoutSection log={currentLog} onField={updateField} />

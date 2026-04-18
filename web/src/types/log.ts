@@ -1,5 +1,8 @@
 export type BreakfastType = 'eggs' | 'protein_shake' | 'other' | 'missed' | ''
 
+/** Where / how the workday was framed; drives office time fields. */
+export type LogDayType = 'office' | 'wfh' | 'holiday' | 'travelling'
+
 export type PriorityStatus = 'Done' | 'Partial' | 'Not Done' | ''
 
 export interface ExerciseSet {
@@ -25,6 +28,8 @@ export interface LogRecord {
   date: string
   wake_time: string
   morning_energy: number | ''
+  /** Default `office`; blank cells on sheet treated as office for backward compatibility. */
+  day_type: LogDayType
   reach_office_time: string
   leave_office_time: string
   sleep_time: string

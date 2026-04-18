@@ -277,6 +277,16 @@ export const useLogStore = create<LogStore>((set, get) => ({
       [field]: value,
       last_updated_at: nowIndiaISOString(),
     }
+    if (
+      field === 'day_type' &&
+      String(value) !== String(currentLog.day_type)
+    ) {
+      next = {
+        ...next,
+        reach_office_time: '',
+        leave_office_time: '',
+      }
+    }
     if (field === 'wake_time' || field === 'sleep_time') {
       const prevDate = addDaysISO(currentDate, -1)
       const prevSleep = await fetchPreviousDaySleepTimeISO(prevDate)

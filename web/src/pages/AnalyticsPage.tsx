@@ -5,7 +5,13 @@ import {
   weekLabelShort,
   daysInBounds,
 } from '../lib/analyticsWeek'
-import { addDaysISO, normalizeCalendarISODate, todayLocalISODate } from '../lib/dates'
+import {
+  addDaysISO,
+  formatDisplayDate,
+  normalizeCalendarISODate,
+  todayLocalISODate,
+} from '../lib/dates'
+import { dayTypeBadgeLabel } from '../constants/dayType'
 import { loadLogsForDateRange } from '../lib/analyticsLoad'
 import type { LogByDate } from '../lib/analytics'
 import {
@@ -156,6 +162,30 @@ export function AnalyticsPage() {
           </button>
         </div>
       </header>
+
+      {!loading && map ? (
+        <div className="flex flex-wrap justify-center gap-2 px-1">
+          {dateList.map((d) => {
+            const log = getLogForDateOrDefault(map, d)
+            const badge = dayTypeBadgeLabel(log.day_type)
+            return (
+              <div
+                key={d}
+                className="flex items-center gap-1.5 rounded-full bg-slate-900/70 px-2 py-1 ring-1 ring-slate-800"
+              >
+                <span className="text-[11px] text-slate-400">
+                  {formatDisplayDate(d)}
+                </span>
+                {badge ? (
+                  <span className="rounded-full bg-violet-500/25 px-1.5 py-0.5 text-[10px] font-semibold text-violet-200">
+                    {badge}
+                  </span>
+                ) : null}
+              </div>
+            )
+          })}
+        </div>
+      ) : null}
 
       {loading || !map ? (
         <BreathingLoadScreen

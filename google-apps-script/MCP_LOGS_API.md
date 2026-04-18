@@ -19,7 +19,8 @@ Machine-readable JSON over the existing **Logs** sheet. Uses the same `EXECUTION
 
 | Rule | Behavior |
 |------|----------|
-| **Blanks** | `''`, `null`, `undefined` → JSON `null` in the response object. |
+| **Blanks** | `''`, `null`, `undefined` → JSON `null` in the response object. **Exception:** `day_type` blank → `"office"` (legacy rows). |
+| **day_type** | `office` \| `wfh` \| `holiday` \| `travelling`; stored as plain text on the sheet (column after `morning_energy`). |
 | **Booleans** | `workout_done`, `warmup_done`, `meditation_done`: `TRUE`/`FALSE` (any case), `1`/`0`, `YES`/`NO` → boolean; unrecognized → `null`. |
 | **Numbers** | Listed numeric columns: parse as finite number; strip commas; invalid → `null`. |
 | **Timestamps** | `wake_time`, `reach_office_time`, `leave_office_time`, `sleep_time`, `last_updated_at`: prefer ISO `yyyy-MM-dd'T'HH:mm:ss+05:30` when parseable; else keep trimmed string. |

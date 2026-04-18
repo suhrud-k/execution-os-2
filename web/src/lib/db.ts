@@ -3,7 +3,8 @@ import type { LogRecord, StoredLogEnvelope } from '../types/log'
 import { nowIndiaISOString } from './dates'
 
 const DB_NAME = 'execution-os'
-const DB_VERSION = 1
+/** v2: LogRecord includes day_type (defaulted on read for older rows). */
+const DB_VERSION = 2
 const STORE = 'logs'
 
 interface ExecOSDB extends DBSchema {
@@ -19,9 +20,11 @@ let dbPromise: Promise<IDBPDatabase<ExecOSDB>> | null = null
 function getDb(): Promise<IDBPDatabase<ExecOSDB>> {
   if (!dbPromise) {
     dbPromise = openDB<ExecOSDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        const s = db.createObjectStore(STORE, { keyPath: 'date' })
-        s.createIndex('by-sync', 'syncStatus')
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          const s = db.createObjectStore(STORE, { keyPath: 'date' })
+          s.createIndex('by-sync', 'syncStatus')
+        }
       },
     })
   }

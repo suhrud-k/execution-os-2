@@ -2,12 +2,17 @@
  * Execution OS — Google Sheets backend
  * Deploy as Web app: Execute as: Me, Who has access: Anyone (use EXECUTION_OS_SECRET for auth).
  * Set script properties: SPREADSHEET_ID, EXECUTION_OS_SECRET
+ *
+ * Sheet layout: maintain row-1 headers yourself (add `day_type` etc. to match LOG_HEADERS).
+ * This script does not insert or reorder columns on read/write.
  */
 
 var LOG_HEADERS = [
   'date',
   'wake_time',
   'morning_energy',
+  // REVIEW: day_type — office | wfh | holiday | travelling (default office). Column sits before office times.
+  'day_type',
   'reach_office_time',
   'leave_office_time',
   'sleep_time',
@@ -155,6 +160,16 @@ function findLogRowIndex_(sheet, dateStr) {
   return -1;
 }
 
+/** Blank / missing day_type → office (legacy rows). */
+function applyDayTypeDefault_(obj) {
+  if (!obj) return obj;
+  var d = obj.day_type;
+  if (d === undefined || d === null || String(d).trim() === '') {
+    obj.day_type = 'office';
+  }
+  return obj;
+}
+
 function doGet(e) {
   try {
     var action = String(e.parameter.action || '');
@@ -211,7 +226,7 @@ function getLogByDate_(dateStr) {
   if (rowIndex < 0) return null;
   // Single row: numRows = 1 (NOT end row — third arg is row count)
   var row = sheet.getRange(rowIndex, 1, 1, headers.length).getValues()[0];
-  return rowToObject_(headers, row);
+  return applyDayTypeDefault_(rowToObject_(headers, row));
 }
 
 /** Headers whose values must stay plain text IST in the sheet (no auto Date/UTC shift). */
@@ -259,6 +274,13 @@ function upsertLog_(log) {
   var dateStr = String(log.date || '');
   if (!dateStr) throw new Error('Missing log.date');
   var logCopy = JSON.parse(JSON.stringify(log));
+  var dtype = String(logCopy.day_type || '').trim();
+  if (dtype === '') dtype = 'office';
+  logCopy.day_type = dtype;
+  if (dtype !== 'office') {
+    logCopy.reach_office_time = '';
+    logCopy.leave_office_time = '';
+  }
   normalizeLogTimesForSheet_(logCopy);
   logCopy.last_updated_at = indiaTimestamp_();
   var row = objectToRow_(headers, logCopy);
@@ -303,7 +325,7 @@ function getRecentLogs_(days) {
       ? Utilities.formatDate(raw, IST, 'yyyy-MM-dd')
       : String(raw || '');
     if (d >= cutoffStr) {
-      out.push(rowToObject_(headers, data[i]));
+      out.push(applyDayTypeDefault_(rowToObject_(headers, data[i])));
     }
   }
   out.sort(function (a, b) {
@@ -515,6 +537,15 @@ function normalizeLogObjectForMcp_(raw) {
     if (mtj.invalid) {
       out.medication_tablets_json_invalid = true;
     }
+  }
+  if (
+    out.day_type === null ||
+    out.day_type === undefined ||
+    out.day_type === ''
+  ) {
+    out.day_type = 'office';
+  } else {
+    out.day_type = String(out.day_type);
   }
   return out;
 }

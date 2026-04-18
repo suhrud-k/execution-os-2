@@ -8,7 +8,6 @@ import {
   indiaISOToTimeInputValue,
 } from '../lib/datetimeLocal'
 import {
-  isWeekendCalendarISODate,
   normalizeCalendarISODate,
   todayLocalISODate,
 } from '../lib/dates'
@@ -50,7 +49,6 @@ export function QuickActions({ log, onField }: Props) {
 
   const logDay = normalizeCalendarISODate(log.date)
   const isLogDayToday = logDay === todayLocalISODate()
-  const weekend = isWeekendCalendarISODate(logDay)
 
   const allItems: {
     label: string
@@ -74,9 +72,10 @@ export function QuickActions({ log, onField }: Props) {
     { label: 'Sleep', field: 'sleep_time', current: log.sleep_time },
   ]
 
-  const items = weekend
-    ? allItems.filter((x) => !x.officeOnly)
-    : allItems
+  const items = allItems.filter((x) => {
+    if (x.officeOnly && log.day_type !== 'office') return false
+    return true
+  })
 
   const isoForQuickField = (field: QuickField, timeHHmm: string) => {
     if (field === 'sleep_time') {

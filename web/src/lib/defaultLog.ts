@@ -1,4 +1,5 @@
 import type { LogRecord } from '../types/log'
+import { coerceLogDayType } from '../constants/dayType'
 import { computeAdditionalProteinG } from './additionalProtein'
 
 export function createDefaultLog(date: string): LogRecord {
@@ -6,6 +7,7 @@ export function createDefaultLog(date: string): LogRecord {
     date,
     wake_time: '',
     morning_energy: '',
+    day_type: 'office',
     reach_office_time: '',
     leave_office_time: '',
     sleep_time: '',
@@ -108,6 +110,12 @@ export function normalizeLegacyLog(log: LogRecord): LogRecord {
   }
   if (next.evening_meal_notes === undefined) {
     next = { ...next, evening_meal_notes: '' }
+  }
+  next = {
+    ...next,
+    day_type: coerceLogDayType(
+      (next as unknown as { day_type?: string }).day_type,
+    ),
   }
   next = { ...next, additional_protein_g: computeAdditionalProteinG(next) }
   return next

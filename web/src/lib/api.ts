@@ -1,4 +1,5 @@
 import type { BreakfastType, LogRecord } from '../types/log'
+import { coerceLogDayType } from '../constants/dayType'
 import { computeAdditionalProteinG } from './additionalProtein'
 import { normalizeLegacyLog } from './defaultLog'
 import { nowIndiaISOString } from './dates'
@@ -121,6 +122,7 @@ function deserializeFromSheet(
     date,
     wake_time: g('wake_time'),
     morning_energy: gn('morning_energy'),
+    day_type: coerceLogDayType(g('day_type')),
     reach_office_time: g('reach_office_time'),
     leave_office_time: g('leave_office_time'),
     sleep_time: g('sleep_time'),
@@ -172,6 +174,7 @@ function serializeForSheet(log: LogRecord): Record<string, string | number | boo
     date: log.date,
     wake_time: log.wake_time,
     morning_energy: log.morning_energy === '' ? '' : log.morning_energy,
+    day_type: log.day_type,
     reach_office_time: log.reach_office_time,
     leave_office_time: log.leave_office_time,
     sleep_time: log.sleep_time,
