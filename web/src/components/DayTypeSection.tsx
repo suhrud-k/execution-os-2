@@ -15,10 +15,6 @@ export function DayTypeSection({ log, onField }: Props) {
 
   return (
     <SectionCard title="Day type">
-      <p className="mb-3 text-xs text-slate-500">
-        How you framed this day. Office times apply only when{' '}
-        <span className="text-slate-400">Office</span> is selected.
-      </p>
       <div
         className="flex flex-wrap gap-2"
         role="group"
@@ -42,12 +38,6 @@ export function DayTypeSection({ log, onField }: Props) {
           )
         })}
       </div>
-      {dt !== 'office' ? (
-        <p className="mt-3 text-xs text-amber-200/90">
-          Reach and leave times were cleared for this day type. If you switch back to
-          Office, enter those times again.
-        </p>
-      ) : null}
     </SectionCard>
   )
 }
