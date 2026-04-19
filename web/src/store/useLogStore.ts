@@ -13,21 +13,29 @@ import {
   nowIndiaISOString,
   normalizeCalendarISODate,
 } from '../lib/dates'
-import { fetchPreviousDaySleepTimeISO } from '../lib/prevEveningSleep'
-import { computeSleepHoursForLog } from '../lib/sleepHours'
 import {
-  apiUpsertLog,
-  apiGetLog,
-  isApiConfigured,
-} from '../lib/api'
+  fetchPreviousDaySleepTimeISO,
+  previousDaySleepFromOutcome,
+  safeApiGetLog,
+  type ApiGetLogOutcome,
+} from '../lib/prevEveningSleep'
+import { computeSleepHoursForLog } from '../lib/sleepHours'
+import { apiUpsertLog, isApiConfigured } from '../lib/api'
 
 const MAX_ACTIVITY = 50
 
 let fieldActivityTimer: ReturnType<typeof setTimeout> | null = null
 
-async function withSleepHours(date: string, log: LogRecord): Promise<LogRecord> {
+async function withSleepHours(
+  date: string,
+  log: LogRecord,
+  prevDayOutcome?: ApiGetLogOutcome,
+): Promise<LogRecord> {
   const prevDate = addDaysISO(date, -1)
-  const prevSleep = await fetchPreviousDaySleepTimeISO(prevDate)
+  const prevSleep =
+    prevDayOutcome !== undefined
+      ? await previousDaySleepFromOutcome(prevDate, prevDayOutcome)
+      : await fetchPreviousDaySleepTimeISO(prevDate)
   const sh = computeSleepHoursForLog(log, prevSleep)
   if (sh === log.sleep_hours) return log
   return { ...log, sleep_hours: sh }
@@ -135,24 +143,28 @@ export const useLogStore = create<LogStore>((set, get) => ({
 
     let log: LogRecord
     let remoteNote = ''
+    let prevForSleep: ApiGetLogOutcome | undefined
 
     if (isPastDay && canRemote) {
-      try {
-        const remote = await apiGetLog(targetDate)
-        if (remote) {
-          log = mergeWithDefaults(targetDate, remote)
-          await saveLogLocal(log, 'synced')
-          remoteNote = 'Loaded from Google Sheet.'
-        } else {
-          log = createDefaultLog(targetDate)
-          remoteNote =
-            'No row on Google Sheet for this date — showing blank (not device cache).'
-        }
-      } catch (e) {
+      const prevDate = addDaysISO(targetDate, -1)
+      const [todayO, prevO] = await Promise.all([
+        safeApiGetLog(targetDate),
+        safeApiGetLog(prevDate),
+      ])
+      prevForSleep = prevO
+      if (!todayO.ok) {
         log = local
           ? mergeWithDefaults(targetDate, local.data)
           : createDefaultLog(targetDate)
-        remoteNote = `Google GET failed: ${e instanceof Error ? e.message : String(e)} — using ${local ? 'device' : 'blank'}.`
+        remoteNote = `Google GET failed: ${todayO.error instanceof Error ? todayO.error.message : String(todayO.error)} — using ${local ? 'device' : 'blank'}.`
+      } else if (todayO.log) {
+        log = mergeWithDefaults(targetDate, todayO.log)
+        await saveLogLocal(log, 'synced')
+        remoteNote = 'Loaded from Google Sheet.'
+      } else {
+        log = createDefaultLog(targetDate)
+        remoteNote =
+          'No row on Google Sheet for this date — showing blank (not device cache).'
       }
     } else {
       log = local
@@ -160,29 +172,32 @@ export const useLogStore = create<LogStore>((set, get) => ({
         : createDefaultLog(targetDate)
 
       if (canRemote) {
-        try {
-          const remote = await apiGetLog(targetDate)
-          if (remote) {
-            const localTs = local?.data.last_updated_at
-              ? Date.parse(local.data.last_updated_at)
-              : 0
-            const remoteTs = remote.last_updated_at
-              ? Date.parse(remote.last_updated_at)
-              : 0
-            if (!local || remoteTs >= localTs) {
-              log = mergeWithDefaults(targetDate, remote)
-              await saveLogLocal(log, 'synced')
-              remoteNote =
-                'Merged with Google Sheet (remote newer or no local).'
-            } else {
-              remoteNote = 'Using local copy (newer than Google Sheet).'
-            }
-          } else {
+        const prevDate = addDaysISO(targetDate, -1)
+        const [todayO, prevO] = await Promise.all([
+          safeApiGetLog(targetDate),
+          safeApiGetLog(prevDate),
+        ])
+        prevForSleep = prevO
+        if (!todayO.ok) {
+          remoteNote = `Google GET failed: ${todayO.error instanceof Error ? todayO.error.message : String(todayO.error)} — using local.`
+        } else if (todayO.log) {
+          const localTs = local?.data.last_updated_at
+            ? Date.parse(local.data.last_updated_at)
+            : 0
+          const remoteTs = todayO.log.last_updated_at
+            ? Date.parse(todayO.log.last_updated_at)
+            : 0
+          if (!local || remoteTs >= localTs) {
+            log = mergeWithDefaults(targetDate, todayO.log)
+            await saveLogLocal(log, 'synced')
             remoteNote =
-              'No row on Google Sheet yet for this date — new log.'
+              'Merged with Google Sheet (remote newer or no local).'
+          } else {
+            remoteNote = 'Using local copy (newer than Google Sheet).'
           }
-        } catch (e) {
-          remoteNote = `Google GET failed: ${e instanceof Error ? e.message : String(e)} — using local.`
+        } else {
+          remoteNote =
+            'No row on Google Sheet yet for this date — new log.'
         }
       } else {
         remoteNote = !isApiConfigured()
@@ -192,7 +207,7 @@ export const useLogStore = create<LogStore>((set, get) => ({
     }
 
     const beforeSleep = log
-    log = await withSleepHours(targetDate, log)
+    log = await withSleepHours(targetDate, log, prevForSleep)
     if (log.sleep_hours !== beforeSleep.sleep_hours) {
       await saveLogLocal(log, 'pending')
     }
@@ -233,11 +248,20 @@ export const useLogStore = create<LogStore>((set, get) => ({
     pushActivity('info', `Refreshing from Google Sheet · ${targetDate}…`)
 
     try {
-      const remote = await apiGetLog(targetDate)
+      const prevDate = addDaysISO(targetDate, -1)
+      const [todayO, prevO] = await Promise.all([
+        safeApiGetLog(targetDate),
+        safeApiGetLog(prevDate),
+      ])
       let log: LogRecord
       let note: string
-      if (remote) {
-        log = mergeWithDefaults(targetDate, remote)
+      if (!todayO.ok) {
+        throw todayO.error instanceof Error
+          ? todayO.error
+          : new Error(String(todayO.error))
+      }
+      if (todayO.log) {
+        log = mergeWithDefaults(targetDate, todayO.log)
         await saveLogLocal(log, 'synced')
         note = 'Updated from sheet.'
       } else {
@@ -247,7 +271,7 @@ export const useLogStore = create<LogStore>((set, get) => ({
       }
 
       const beforeSleep = log
-      log = await withSleepHours(targetDate, log)
+      log = await withSleepHours(targetDate, log, prevO)
       if (log.sleep_hours !== beforeSleep.sleep_hours) {
         await saveLogLocal(log, 'pending')
       }
