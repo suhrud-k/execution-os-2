@@ -39,6 +39,8 @@ export function TodayPage() {
   const syncError = useLogStore((s) => s.syncError)
   const lastSyncedAt = useLogStore((s) => s.lastSyncedAt)
   const refreshFromSheet = useLogStore((s) => s.refreshFromSheet)
+  const remoteDivergence = useLogStore((s) => s.remoteDivergence)
+  const refreshFromLocal = useLogStore((s) => s.refreshFromLocal)
   const [sheetRefreshing, setSheetRefreshing] = useState(false)
 
   useEffect(() => {
@@ -57,8 +59,27 @@ export function TodayPage() {
   const showJumpToToday = calendarDayDiff(normCurrent, today) >= 2
   const dayBadge = dayTypeBadgeLabel(currentLog.day_type)
 
+  const showRemoteRefreshBanner =
+    remoteDivergence !== null &&
+    normalizeCalendarISODate(remoteDivergence.date) === normCurrent
+
   return (
     <div className="space-y-4 pb-6">
+      {showRemoteRefreshBanner ? (
+        <div
+          className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-sky-950/70 px-3 py-2.5 text-xs text-sky-100 ring-1 ring-sky-800/80"
+          role="status"
+        >
+          <p className="min-w-0 flex-1 leading-snug">{remoteDivergence.reason}</p>
+          <button
+            type="button"
+            onClick={() => void refreshFromLocal()}
+            className="shrink-0 rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-500"
+          >
+            Refresh
+          </button>
+        </div>
+      ) : null}
       <header className="flex flex-col gap-2">
         {isApiConfigured() ? (
           <div className="flex justify-end">

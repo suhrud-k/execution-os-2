@@ -26,6 +26,24 @@ const MAX_ACTIVITY = 50
 
 let fieldActivityTimer: ReturnType<typeof setTimeout> | null = null
 
+/** Parse `last_updated_at` for LWW; missing or invalid → 0 (treated as oldest). */
+function lastUpdatedMs(record: LogRecord | null | undefined): number {
+  const raw = record?.last_updated_at?.trim()
+  if (!raw) return 0
+  const t = Date.parse(raw)
+  return Number.isFinite(t) ? t : 0
+}
+
+function applySleepHoursFromPrevEnvelope(
+  log: LogRecord,
+  prevEnv: Awaited<ReturnType<typeof getLogEnvelope>>,
+): LogRecord {
+  const prevSleep = (prevEnv?.data.sleep_time ?? '').trim()
+  const sh = computeSleepHoursForLog(log, prevSleep)
+  if (sh === log.sleep_hours) return log
+  return { ...log, sleep_hours: sh }
+}
+
 async function withSleepHours(
   date: string,
   log: LogRecord,
@@ -51,8 +69,16 @@ function persistLogAfterSheetSync(log: LogRecord): LogRecord {
   }
 }
 
+export type RemoteDivergence = {
+  date: string
+  reason: string
+}
+
 type LogStore = {
+  /** IndexedDB read for current date finished; safe to render form (or blocking path completed). */
   hydrated: boolean
+  isSyncing: boolean
+  remoteDivergence: RemoteDivergence | null
   currentDate: string
   currentLog: LogRecord | null
   currentSyncStatus: 'pending' | 'synced'
@@ -63,6 +89,8 @@ type LogStore = {
   clearActivityLog: () => void
   loadTodayLog: () => void
   loadLogForDate: (date: string) => Promise<void>
+  /** Re-read current date from IndexedDB into the form (after sheet sync wrote newer data). */
+  refreshFromLocal: () => Promise<void>
   /** Pull this calendar day from the sheet; drop local row if the sheet has no row. */
   refreshFromSheet: () => Promise<void>
   updateField: <K extends keyof LogRecord>(
@@ -76,6 +104,8 @@ type LogStore = {
 
 export const useLogStore = create<LogStore>((set, get) => ({
   hydrated: false,
+  isSyncing: false,
+  remoteDivergence: null,
   currentDate: todayLocalISODate(),
   currentLog: null,
   currentSyncStatus: 'synced',
@@ -107,6 +137,7 @@ export const useLogStore = create<LogStore>((set, get) => ({
       currentLog: null,
       hydrated: false,
       syncError: null,
+      remoteDivergence: null,
     })
   },
 
@@ -116,6 +147,22 @@ export const useLogStore = create<LogStore>((set, get) => ({
       currentLog: null,
       hydrated: false,
       syncError: null,
+      remoteDivergence: null,
+    })
+  },
+
+  refreshFromLocal: async () => {
+    const targetDate = normalizeCalendarISODate(get().currentDate)
+    const env = await getLogEnvelope(targetDate)
+    if (!env) return
+    const prevDate = addDaysISO(targetDate, -1)
+    const prevEnv = await getLogEnvelope(prevDate)
+    let log = mergeWithDefaults(targetDate, env.data)
+    log = applySleepHoursFromPrevEnvelope(log, prevEnv)
+    set({
+      currentLog: normalizeLegacyLog(log),
+      remoteDivergence: null,
+      currentSyncStatus: env.syncStatus,
     })
   },
 
@@ -129,104 +176,208 @@ export const useLogStore = create<LogStore>((set, get) => ({
         currentLog: null,
         hydrated: false,
         syncError: null,
+        remoteDivergence: null,
       })
       targetDate = today
     }
 
     pushActivity('info', `Loading log for ${targetDate}…`)
 
-    const local = await getLogEnvelope(targetDate)
+    const prevDate = addDaysISO(targetDate, -1)
+    const [localToday, localPrev] = await Promise.all([
+      getLogEnvelope(targetDate),
+      getLogEnvelope(prevDate),
+    ])
+
     const isPastDay = targetDate < today
     const online =
       typeof navigator !== 'undefined' && navigator.onLine
     const canRemote = isApiConfigured() && online
 
-    let log: LogRecord
-    let remoteNote = ''
-    let prevForSleep: ApiGetLogOutcome | undefined
-
-    if (isPastDay && canRemote) {
-      const prevDate = addDaysISO(targetDate, -1)
+    const runBlockingRemoteLoad = async () => {
       const [todayO, prevO] = await Promise.all([
         safeApiGetLog(targetDate),
         safeApiGetLog(prevDate),
       ])
-      prevForSleep = prevO
+      let log: LogRecord
+      let remoteNote = ''
       if (!todayO.ok) {
-        log = local
-          ? mergeWithDefaults(targetDate, local.data)
-          : createDefaultLog(targetDate)
-        remoteNote = `Google GET failed: ${todayO.error instanceof Error ? todayO.error.message : String(todayO.error)} — using ${local ? 'device' : 'blank'}.`
+        log = createDefaultLog(targetDate)
+        remoteNote = `Google GET failed: ${todayO.error instanceof Error ? todayO.error.message : String(todayO.error)} — using blank.`
       } else if (todayO.log) {
         log = mergeWithDefaults(targetDate, todayO.log)
         await saveLogLocal(log, 'synced')
-        remoteNote = 'Loaded from Google Sheet.'
+        remoteNote = isPastDay
+          ? 'Loaded from Google Sheet.'
+          : 'Merged with Google Sheet (remote newer or no local).'
       } else {
         log = createDefaultLog(targetDate)
-        remoteNote =
-          'No row on Google Sheet for this date — showing blank (not device cache).'
+        remoteNote = isPastDay
+          ? 'No row on Google Sheet for this date — showing blank (not device cache).'
+          : 'No row on Google Sheet yet for this date — new log.'
       }
-    } else {
-      log = local
-        ? mergeWithDefaults(targetDate, local.data)
-        : createDefaultLog(targetDate)
+      const beforeSleep = log
+      log = await withSleepHours(targetDate, log, prevO)
+      if (log.sleep_hours !== beforeSleep.sleep_hours) {
+        await saveLogLocal(log, 'pending')
+      }
+      if (normalizeCalendarISODate(get().currentDate) !== targetDate) {
+        return
+      }
+      const env = await getLogEnvelope(targetDate)
+      set({
+        currentLog: log,
+        hydrated: true,
+        syncError: null,
+        currentSyncStatus: env?.syncStatus ?? 'synced',
+        isSyncing: false,
+        remoteDivergence: null,
+      })
+      const loadLevel: ActivityLevel = remoteNote.includes('Google GET failed')
+        ? 'error'
+        : 'success'
+      get().pushActivity(loadLevel, `Ready · ${targetDate}. ${remoteNote}`)
+    }
 
-      if (canRemote) {
-        const prevDate = addDaysISO(targetDate, -1)
+    const runBackgroundSheetSync = async () => {
+      set({ isSyncing: true })
+      let shouldDiverge = false
+      let divergenceReason =
+        'Newer data is available from your Google Sheet. Refresh to load it.'
+      let divergedFromToday = false
+      try {
         const [todayO, prevO] = await Promise.all([
           safeApiGetLog(targetDate),
           safeApiGetLog(prevDate),
         ])
-        prevForSleep = prevO
-        if (!todayO.ok) {
-          remoteNote = `Google GET failed: ${todayO.error instanceof Error ? todayO.error.message : String(todayO.error)} — using local.`
-        } else if (todayO.log) {
-          const localTs = local?.data.last_updated_at
-            ? Date.parse(local.data.last_updated_at)
-            : 0
-          const remoteTs = todayO.log.last_updated_at
-            ? Date.parse(todayO.log.last_updated_at)
-            : 0
-          if (!local || remoteTs >= localTs) {
-            log = mergeWithDefaults(targetDate, todayO.log)
-            await saveLogLocal(log, 'synced')
-            remoteNote =
-              'Merged with Google Sheet (remote newer or no local).'
-          } else {
-            remoteNote = 'Using local copy (newer than Google Sheet).'
-          }
-        } else {
-          remoteNote =
-            'No row on Google Sheet yet for this date — new log.'
+        if (normalizeCalendarISODate(get().currentDate) !== targetDate) {
+          return
         }
-      } else {
-        remoteNote = !isApiConfigured()
-          ? 'API not configured — device only.'
-          : 'Offline — device only.'
+
+        if (todayO.ok && todayO.log) {
+          const localEnv = await getLogEnvelope(targetDate)
+          const localTs = lastUpdatedMs(localEnv?.data)
+          const remoteTs = lastUpdatedMs(todayO.log)
+          if (remoteTs > localTs) {
+            try {
+              const merged = mergeWithDefaults(targetDate, todayO.log)
+              await saveLogLocal(merged, 'synced')
+              shouldDiverge = true
+              divergedFromToday = true
+            } catch (e) {
+              console.error('[loadLogForDate] saveLogLocal (remote today) failed', e)
+            }
+          }
+        }
+
+        if (
+          prevO.ok &&
+          prevO.log &&
+          normalizeCalendarISODate(get().currentDate) === targetDate
+        ) {
+          const localPrevEnv = await getLogEnvelope(prevDate)
+          const lpTs = lastUpdatedMs(localPrevEnv?.data)
+          const rpTs = lastUpdatedMs(prevO.log)
+          if (rpTs > lpTs) {
+            try {
+              await saveLogLocal(mergeWithDefaults(prevDate, prevO.log), 'synced')
+              const todayE = await getLogEnvelope(targetDate)
+              if (todayE) {
+                let tlog = mergeWithDefaults(targetDate, todayE.data)
+                const pE = await getLogEnvelope(prevDate)
+                tlog = applySleepHoursFromPrevEnvelope(tlog, pE)
+                if (tlog.sleep_hours !== todayE.data.sleep_hours) {
+                  await saveLogLocal(tlog, todayE.syncStatus)
+                }
+                const cur = get().currentLog
+                if (
+                  cur &&
+                  normalizeCalendarISODate(cur.date) === targetDate &&
+                  tlog.sleep_hours !== cur.sleep_hours
+                ) {
+                  shouldDiverge = true
+                  if (!divergedFromToday) {
+                    divergenceReason =
+                      'Sleep hours were updated from the sheet. Refresh to see them.'
+                  }
+                }
+              }
+            } catch (e) {
+              console.error('[loadLogForDate] background prev save failed', e)
+            }
+          }
+        }
+
+        if (normalizeCalendarISODate(get().currentDate) !== targetDate) {
+          return
+        }
+
+        set({
+          remoteDivergence: shouldDiverge
+            ? { date: targetDate, reason: divergenceReason }
+            : null,
+        })
+      } catch (e) {
+        console.error('[loadLogForDate] background sync failed', e)
+      } finally {
+        set({ isSyncing: false })
       }
     }
 
-    const beforeSleep = log
-    log = await withSleepHours(targetDate, log, prevForSleep)
-    if (log.sleep_hours !== beforeSleep.sleep_hours) {
-      await saveLogLocal(log, 'pending')
-    }
-
-    if (get().currentDate !== targetDate) {
+    if (!localToday) {
+      if (!canRemote) {
+        let log = createDefaultLog(targetDate)
+        log = applySleepHoursFromPrevEnvelope(log, localPrev)
+        log = normalizeLegacyLog(log)
+        if (normalizeCalendarISODate(get().currentDate) !== targetDate) {
+          return
+        }
+        set({
+          currentLog: log,
+          hydrated: true,
+          syncError: null,
+          currentSyncStatus: 'synced',
+          isSyncing: false,
+          remoteDivergence: null,
+        })
+        get().pushActivity(
+          'success',
+          `Ready · ${targetDate}. API not configured or offline — new blank log.`,
+        )
+        return
+      }
+      await runBlockingRemoteLoad()
       return
     }
 
-    const env = await getLogEnvelope(targetDate)
+    let log = mergeWithDefaults(targetDate, localToday.data)
+    log = applySleepHoursFromPrevEnvelope(log, localPrev)
+    if (log.sleep_hours !== localToday.data.sleep_hours) {
+      await saveLogLocal(log, localToday.syncStatus)
+    }
+    log = normalizeLegacyLog(log)
+
+    if (normalizeCalendarISODate(get().currentDate) !== targetDate) {
+      return
+    }
+
     set({
       currentLog: log,
       hydrated: true,
       syncError: null,
-      currentSyncStatus: env?.syncStatus ?? 'synced',
+      currentSyncStatus: localToday.syncStatus,
+      remoteDivergence: null,
     })
-    const loadLevel: ActivityLevel = remoteNote.includes('Google GET failed')
-      ? 'error'
-      : 'success'
-    get().pushActivity(loadLevel, `Ready · ${targetDate}. ${remoteNote}`)
+    get().pushActivity(
+      'success',
+      `Ready · ${targetDate}. Showing device copy; checking sheet in background…`,
+    )
+
+    if (canRemote) {
+      void runBackgroundSheetSync()
+    } else {
+      set({ isSyncing: false })
+    }
   },
 
   refreshFromSheet: async () => {
@@ -276,13 +427,14 @@ export const useLogStore = create<LogStore>((set, get) => ({
         await saveLogLocal(log, 'pending')
       }
 
-      if (get().currentDate !== targetDate) return
+      if (normalizeCalendarISODate(get().currentDate) !== targetDate) return
 
       const env = await getLogEnvelope(targetDate)
       set({
         currentLog: log,
         syncError: null,
         currentSyncStatus: env?.syncStatus ?? 'synced',
+        remoteDivergence: null,
       })
       pushActivity('success', `Sheet refresh · ${targetDate}. ${note}`)
     } catch (e) {
@@ -373,6 +525,7 @@ export const useLogStore = create<LogStore>((set, get) => ({
         syncError: null,
         lastSyncedAt: nowIndiaISOString(),
         currentSyncStatus: 'synced',
+        remoteDivergence: null,
       })
       pushActivity(
         'success',
